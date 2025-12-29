@@ -109,20 +109,30 @@ export default function BoardPage() {
         }, "image/png");
       });
 
-      if (navigator.share && navigator.share.can) {
-        const file = new File([blob], "vision-board-2026.png", {
-          type: "image/png",
-        });
-        await navigator.share({
-          title: "My 2026 Vision Board",
-          files: [file],
-        });
+      if (navigator.share) {
+        try {
+          const file = new File([blob], "vision-board-2026.png", {
+            type: "image/png",
+          });
+          await navigator.share({
+            title: "My 2026 Vision Board",
+            files: [file],
+          });
+        } catch (err) {
+          // If share fails, fallback to download
+          handleDownload();
+        }
       } else {
         // Fallback: copy to clipboard or download
-        await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob }),
-        ]);
-        alert("Image copied to clipboard!");
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+          alert("Image copied to clipboard!");
+        } catch (err) {
+          // If clipboard fails, fallback to download
+          handleDownload();
+        }
       }
     } catch (err) {
       console.error("Error sharing:", err);
