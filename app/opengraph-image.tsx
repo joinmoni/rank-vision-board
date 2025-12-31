@@ -12,8 +12,9 @@ export const contentType = 'image/png';
 
 export default async function Image() {
   // Read the Dazzed Bold and Regular fonts from the file system
-  const boldFontPath = join(process.cwd(), 'public', 'Dazzed', 'Dazzed-TRIAL-Bold.woff2');
-  const regularFontPath = join(process.cwd(), 'public', 'Dazzed', 'Dazzed-TRIAL-Regular.woff2');
+  // Using TTF format as WOFF2 may not be supported by @vercel/og
+  const boldFontPath = join(process.cwd(), 'public', 'Dazzed', 'Dazzed-TRIAL-Bold.ttf');
+  const regularFontPath = join(process.cwd(), 'public', 'Dazzed', 'Dazzed-TRIAL-Regular.ttf');
   const boldFontData = await readFile(boldFontPath);
   const regularFontData = await readFile(regularFontPath);
 
