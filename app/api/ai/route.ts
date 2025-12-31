@@ -11,6 +11,17 @@ const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json(
+        { 
+          error: 'OpenAI API key not configured',
+          details: 'Please set OPENAI_API_KEY in your .env.local file'
+        },
+        { status: 500 }
+      );
+    }
+
     const { goals } = await request.json();
 
     if (!goals || !Array.isArray(goals) || goals.length === 0) {
@@ -47,7 +58,7 @@ Newspaper Cutout Vision Board Style Requirements:
 - Images should have the characteristic newspaper cutout aesthetic: slightly rough edges, newsprint texture, and the look of being physically cut and pasted
 - The cutout images should appear stuck onto the cardboard paper with visible adhesive elements (tape, glue marks, or the look of being pasted)
 - Arrange the cutout images in an artistic, collage-style layout with some overlap, varied sizes, and organic placement across the cardboard surface
-- Include minimal text labels near or on each cutout image stating the goal (clean, simple typography that looks handwritten or cut from newspaper headlines)
+- NO TEXT, LABELS, OR CAPTIONS on any images - the images should be purely visual representations without any text overlays
 - Use natural lighting, realistic shadows cast by the cutouts on the cardboard surface, and true-to-life colors
 - The overall composition should feel like a real, handcrafted vision board someone created by cutting images from newspapers and pasting them onto cardboard
 
@@ -62,10 +73,9 @@ Photography Style:
 
 Content Requirements:
 - Each goal should be represented by a realistic photographic image showing people, places, or activities related to that goal
-- Favor people of color in all images representing goals (diverse representation with emphasis on people of color)
+- All people in the images must look Nigerian - featuring Nigerian features, skin tones, and characteristics (diverse Nigerian representation including various ethnic groups)
 - Images should look like newspaper or magazine cutouts with visible cut edges, newsprint texture, and authentic paper quality
-- Include minimal text for each goal - simple, clean labels that state the goal clearly (e.g., "Run a marathon", "Travel to Japan", "Learn to cook")
-- Text should look like it was cut from newspaper headlines or handwritten in a clean, readable style
+- NO TEXT, CAPTIONS, OR LABELS on any images - images should be purely visual without any text
 - The vision board should feel authentic and personal, like something someone actually created by cutting and pasting
 - Include natural elements like tape, glue marks, or adhesive residue where cutouts are stuck/pasted onto the cardboard
 - The cardboard paper should be the only background - no tables, surfaces, or other objects visible
@@ -79,7 +89,9 @@ Mood:
 - Has the nostalgic, DIY aesthetic of newspaper collages
 
 Output:
-- One single, realistic photographic image of a large cardboard paper background with newspaper cutout-style images stuck/pasted onto it, each labeled with minimal text stating the goal`;
+- One single, realistic photographic image of a large cardboard paper background with newspaper cutout-style images stuck/pasted onto it
+- All images must be purely visual with NO TEXT, LABELS, OR CAPTIONS
+- All people depicted must look Nigerian with authentic Nigerian features and characteristics`;
 
     // Generate image using OpenAI
     const startTime = Date.now();
