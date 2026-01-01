@@ -197,7 +197,7 @@ export default function BoardPage() {
             if (navigator.canShare({ files: [file] })) {
               await navigator.share({
                 files: [file],
-                title: "My 2026 Vision Board",
+                title: "My 2026 Vision Board built with Rank",
               });
             }
           } catch (err) {
@@ -261,14 +261,40 @@ export default function BoardPage() {
       // Draw logo in bottom right corner (white color)
       if (logoImage.complete && logoImage.naturalWidth > 0) {
         const logoSize = size * 0.1; // 10% of canvas size
+        const logoHeight = logoSize * logoImage.height / logoImage.width;
         const logoX = size - logoSize - size * 0.04; // 4% padding from right
-        const logoY = size - logoSize - size * 0.04; // 4% padding from bottom
+        const logoY = size - logoHeight - size * 0.04; // 4% padding from bottom
         
-        // Apply white color filter
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.filter = 'brightness(0) invert(1)';
-        ctx.drawImage(logoImage, logoX, logoY, logoSize, (logoSize * logoImage.height / logoImage.width));
-        ctx.filter = 'none';
+        // Create temporary canvas to apply white filter
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = logoSize;
+        tempCanvas.height = logoHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        if (tempCtx) {
+          // Draw logo to temporary canvas
+          tempCtx.drawImage(logoImage, 0, 0, logoSize, logoHeight);
+          
+          // Get image data and convert to white
+          const imageData = tempCtx.getImageData(0, 0, logoSize, logoHeight);
+          const data = imageData.data;
+          
+          // Convert all non-transparent pixels to white
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 0) { // If pixel is not transparent
+              data[i] = 255;     // R
+              data[i + 1] = 255; // G
+              data[i + 2] = 255; // B
+              // Keep alpha channel (data[i + 3])
+            }
+          }
+          
+          tempCtx.putImageData(imageData, 0, 0);
+          
+          // Draw the white logo to main canvas
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.drawImage(tempCanvas, logoX, logoY);
+        }
       }
 
       // Convert canvas to blob
@@ -291,7 +317,7 @@ export default function BoardPage() {
           if (navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
-              title: "My 2026 Vision Board",
+              title: "",
               text: `I used the Rank vision board to create my 2026 vision board! Check it out here: ${process.env.NEXT_PUBLIC_APP_URL}`,
             });
             return; // Successfully shared
