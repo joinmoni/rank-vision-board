@@ -108,7 +108,7 @@ export default function CreatePage() {
                   : "bg-[#FFD6B0] text-white cursor-not-allowed"
               }`}
             >
-              Generate Goal
+              Generate Board
             </button>
           </div>
 
@@ -308,7 +308,7 @@ export default function CreatePage() {
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
                 }`}
               >
-                Generate Goal
+                Generate Board
               </button>
             </div>
           </div>
