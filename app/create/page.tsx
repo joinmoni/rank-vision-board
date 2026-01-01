@@ -284,7 +284,7 @@ export default function CreatePage() {
               <button
                 onClick={addGoal}
                 disabled={!canGenerate}
-                className={`flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
+                className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
                   canGenerate
                     ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white active:scale-95"
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
@@ -302,7 +302,7 @@ export default function CreatePage() {
               <button
                 onClick={handleGenerate}
                 disabled={!canGenerate}
-                className={`flex-1 py-4 rounded-2xl font-bold text-lg transition-all ${
+                className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg transition-all ${
                   canGenerate
                     ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white cursor-pointer active:scale-95"
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
