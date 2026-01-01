@@ -106,80 +106,232 @@ export default function BoardPage() {
 
   const getCollageElement = () => {
     // Try to get from ref first (mobile version)
-    if (collageRef.current) return collageRef.current;
+    if (collageRef.current) {
+      console.log("Using ref element");
+      return collageRef.current;
+    }
     // Fallback: find by class (works for both mobile and desktop)
-    return document.querySelector('.board-result') as HTMLElement;
+    const element = document.querySelector('.board-result') as HTMLElement;
+    console.log("Using querySelector element:", element);
+    return element;
   };
 
   const handleDownload = async () => {
-    const collageElement = getCollageElement();
-    if (!collageElement) return;
+    if (!imageUrl) {
+      alert("No image available to download. Please wait for the vision board to be generated.");
+      return;
+    }
 
     try {
-      const canvas = await html2canvas(collageElement, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      // Load the main image
+      const mainImage = document.createElement('img');
+      mainImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        mainImage.onload = resolve;
+        mainImage.onerror = reject;
+        mainImage.src = imageUrl;
       });
 
-      const link = document.createElement("a");
-      link.download = "vision-board-2026.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    } catch (err) {
+      // Load the logo image
+      const logoImage = document.createElement('img');
+      logoImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve) => {
+        logoImage.onload = resolve;
+        logoImage.onerror = resolve; // Continue even if logo fails
+        logoImage.src = '/rank-logo.svg';
+      });
+
+      // Create canvas - make it square using the smaller dimension
+      const size = Math.min(mainImage.width, mainImage.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error("Failed to get canvas context");
+      }
+
+      // Fill with white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw main image centered and cropped to square
+      const offsetX = (mainImage.width - size) / 2;
+      const offsetY = (mainImage.height - size) / 2;
+      ctx.drawImage(mainImage, offsetX, offsetY, size, size, 0, 0, size, size);
+
+      // Draw logo in bottom right corner (white color)
+      if (logoImage.complete && logoImage.naturalWidth > 0) {
+        const logoSize = size * 0.1; // 10% of canvas size
+        const logoX = size - logoSize - size * 0.04; // 4% padding from right
+        const logoY = size - logoSize - size * 0.04; // 4% padding from bottom
+        
+        // Apply white color filter by drawing logo with composite operation
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.filter = 'brightness(0) invert(1)';
+        ctx.drawImage(logoImage, logoX, logoY, logoSize, (logoSize * logoImage.height / logoImage.width));
+        ctx.filter = 'none';
+      }
+
+      // Convert canvas to data URL
+      const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+      
+      // Create download link
+      const element = document.createElement('a');
+      const filename = 'vision-board-2026.png';
+      element.setAttribute('href', image);
+      element.setAttribute('download', filename);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+
+      // Also try Web Share API for mobile
+      canvas.toBlob(async (blob) => {
+        if (blob && navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], filename, { type: "image/png" });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: "My 2026 Vision Board",
+              });
+            }
+          } catch (err) {
+            // Share failed or cancelled, that's okay
+          }
+        }
+      }, "image/png");
+    } catch (err: any) {
       console.error("Error generating download:", err);
-      alert("Failed to download image. Please try again.");
+      alert(`Failed to download image: ${err?.message || "Unknown error"}. Please try again.`);
     }
   };
 
   const handleShare = async () => {
-    const collageElement = getCollageElement();
-    if (!collageElement) return;
+    if (!imageUrl) {
+      alert("No image available to share. Please wait for the vision board to be generated.");
+      return;
+    }
 
     try {
-      const canvas = await html2canvas(collageElement, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      // Load the main image
+      const mainImage = document.createElement('img');
+      mainImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        mainImage.onload = resolve;
+        mainImage.onerror = reject;
+        mainImage.src = imageUrl;
       });
 
-      const blob = await new Promise<Blob>((resolve) => {
+      // Load the logo image
+      const logoImage = document.createElement('img');
+      logoImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve) => {
+        logoImage.onload = resolve;
+        logoImage.onerror = resolve; // Continue even if logo fails
+        logoImage.src = '/rank-logo.svg';
+      });
+
+      // Create canvas - make it square using the smaller dimension
+      const size = Math.min(mainImage.width, mainImage.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error("Failed to get canvas context");
+      }
+
+      // Fill with white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw main image centered and cropped to square
+      const offsetX = (mainImage.width - size) / 2;
+      const offsetY = (mainImage.height - size) / 2;
+      ctx.drawImage(mainImage, offsetX, offsetY, size, size, 0, 0, size, size);
+
+      // Draw logo in bottom right corner (white color)
+      if (logoImage.complete && logoImage.naturalWidth > 0) {
+        const logoSize = size * 0.1; // 10% of canvas size
+        const logoX = size - logoSize - size * 0.04; // 4% padding from right
+        const logoY = size - logoSize - size * 0.04; // 4% padding from bottom
+        
+        // Apply white color filter
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.filter = 'brightness(0) invert(1)';
+        ctx.drawImage(logoImage, logoX, logoY, logoSize, (logoSize * logoImage.height / logoImage.width));
+        ctx.filter = 'none';
+      }
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
+          resolve(blob);
         }, "image/png");
       });
 
-      if (navigator.share) {
+      if (!blob) {
+        throw new Error("Failed to create image blob");
+      }
+
+      const filename = 'vision-board-2026.png';
+
+      // Try Web Share API first (mobile)
+      if (navigator.share && navigator.canShare) {
         try {
-          const file = new File([blob], "vision-board-2026.png", {
-            type: "image/png",
-          });
-          await navigator.share({
-            title: "My 2026 Vision Board",
-            files: [file],
-          });
-        } catch (err) {
-          // If share fails, fallback to download
-          handleDownload();
+          const file = new File([blob], filename, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: "My 2026 Vision Board",
+              text: "Check out my 2026 vision board!",
+            });
+            return; // Successfully shared
+          }
+        } catch (err: any) {
+          // User cancelled or share failed
+          if (err.name === "AbortError") {
+            return; // User cancelled, don't try other methods
+          }
+          // Otherwise fall through to clipboard
         }
-      } else {
-        // Fallback: copy to clipboard or download
+      }
+
+      // Fallback: Try Clipboard API (desktop)
+      if (navigator.clipboard && navigator.clipboard.write) {
         try {
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
-          alert("Image copied to clipboard!");
+          alert("Image copied to clipboard! You can paste it anywhere.");
+          return; // Successfully copied
         } catch (err) {
-          // If clipboard fails, fallback to download
-          handleDownload();
+          // Clipboard failed, fall through to download
+          console.log("Clipboard API not supported or failed:", err);
         }
       }
-    } catch (err) {
+
+      // Final fallback: Download
+      const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+      const element = document.createElement('a');
+      element.setAttribute('href', image);
+      element.setAttribute('download', filename);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      
+    } catch (err: any) {
       console.error("Error sharing:", err);
-      // Fallback to download
-      handleDownload();
+      alert(`Failed to share image: ${err?.message || "Unknown error"}. Please try downloading instead.`);
     }
   };
 
@@ -239,14 +391,29 @@ export default function BoardPage() {
             ) : (
               <div
                 ref={collageRef}
-                className="board-result w-full aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden"
+                className="board-result w-full aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative"
               >
                 {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Vision Board"
-                    className="w-full h-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={imageUrl}
+                      alt="Vision Board"
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Rank Logo in bottom right */}
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <img
+                        src="/rank-logo.svg"
+                        alt="Rank Logo"
+                        className="h-6 w-auto opacity-90"
+                        style={{ 
+                          width: 'auto', 
+                          height: '24px',
+                          filter: 'brightness(0) invert(1)'
+                        }}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -414,14 +581,29 @@ export default function BoardPage() {
               </div>
             ) : (
               <div
-                className="board-result w-full max-w-[600px] aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden"
+                className="board-result w-full max-w-[600px] aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative"
               >
                 {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Vision Board"
-                    className="w-full h-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={imageUrl}
+                      alt="Vision Board"
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Rank Logo in bottom right */}
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <img
+                        src="/rank-logo.svg"
+                        alt="Rank Logo"
+                        className="h-6 w-auto opacity-90"
+                        style={{ 
+                          width: 'auto', 
+                          height: '24px',
+                          filter: 'brightness(0) invert(1)'
+                        }}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             )}

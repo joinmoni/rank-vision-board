@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     const goalsWithText = validGoals.map((goal) => goal.trim()).join(', ');
 
     // Create prompt for newspaper cutout-style vision board
+    // const prompt = "generate a simple cat image"
     const prompt = `Create an ultra-realistic, high-resolution photograph of a beautiful vision board with a newspaper cutout collage style that visually represents the following life goals.
 
 Goals:
@@ -94,52 +95,42 @@ Output:
 - All people depicted must look Nigerian with authentic Nigerian features and characteristics`;
 
     // Generate image using OpenAI
-    const startTime = Date.now();
-    const response = await openai.responses.create({
-      model: 'gpt-5',
-      input: prompt,
-      tools: [{ type: 'image_generation' }],
+    const result = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size: "1024x1024",
+      n: 1,
     });
-    const generationTime = Date.now() - startTime;
-
-    // Extract timing information from response if available
-    const responseAny = response as any;
-    const apiGenerationTime = responseAny.completed_at && responseAny.created_at
-      ? Math.round((responseAny.completed_at - responseAny.created_at) / 1000) // Convert to seconds
-      : Math.round(generationTime / 1000); // Fallback to measured time
-
-    // Log response structure for debugging (check for timing info)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('OpenAI API Response timing:', {
-        created_at: responseAny.created_at,
-        completed_at: responseAny.completed_at,
-        apiGenerationTimeSeconds: apiGenerationTime,
-        measuredTimeSeconds: Math.round(generationTime / 1000),
-      });
-    }
 
     // Extract image data from response
-    const imageData = response.output
-      .filter((output: any) => output.type === 'image_generation_call')
-      .map((output: any) => output.result);
-
-    if (!imageData || imageData.length === 0) {
+    if (!result.data || result.data.length === 0) {
       return NextResponse.json(
         { error: 'Failed to generate image' },
         { status: 500 }
       );
     }
 
-    // Get the base64 image data
-    const imageBase64 = imageData[0];
+    // Use base64 if available, otherwise fall back to URL
+    const imageData = result.data[0];
+    let imageUrl: string;
 
-    // Return the image as base64 data URL
-    const imageUrl = `data:image/png;base64,${imageBase64}`;
+    if (imageData.b64_json) {
+      // Convert base64 to data URL
+      imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+    } else if (imageData.url) {
+      // Use URL directly
+      imageUrl = imageData.url;
+    } else {
+      return NextResponse.json(
+        { error: 'No image data found in response' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       imageUrl,
       goals: validGoals,
-      generationTimeSeconds: apiGenerationTime, // Return timing info to frontend
+      
     });
   } catch (error: any) {
     // Log full error details

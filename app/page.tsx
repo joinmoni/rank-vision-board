@@ -10,12 +10,12 @@ export default function Home() {
           {/* Logo */}
           <div className="flex items-center gap-2 mb-6">
             <Link href="/">
-              <Image
+        <Image
                 src="/rank-logo.svg"
                 alt="Rank Logo"
                 width={120}
                 height={35}
-                priority
+          priority
                 className="h-[22px] w-auto"
               />
             </Link>
@@ -186,7 +186,7 @@ export default function Home() {
         <div className="w-1/2 flex flex-col justify-center items-start text-left px-16">
           <div className="flex items-center gap-2 mb-8">
             <Link href="/">
-              <Image
+            <Image
                 src="/rank-logo.svg"
                 alt="Rank Logo"
                 width={120}
@@ -210,7 +210,7 @@ export default function Home() {
             <Link
               href="/create"
               className="bg-[#FF7A00] hover:bg-[#E66D00] text-white w-auto px-14 py-4 rounded-2xl font-bold text-lg shadow-lg transition-all active:scale-95 inline-block text-center"
-            >
+          >
               Add your goals
             </Link>
           </div>
