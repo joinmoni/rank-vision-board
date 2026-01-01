@@ -318,7 +318,7 @@ export default function BoardPage() {
             await navigator.share({
               files: [file],
               title: "",
-              text: `I used the Rank vision board to create my 2026 vision board! Check it out here: ${process.env.NEXT_PUBLIC_SITE_URL}`,
+              text: `I used the Rank vision board app to create my 2026 vision board! Check it out here: ${process.env.NEXT_PUBLIC_SITE_URL}`,
             });
             return; // Successfully shared
           }

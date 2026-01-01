@@ -17,11 +17,20 @@ export const metadata: Metadata = {
     description: "Simply type in your goals below. We will instantly transform them into a stunning image to keep you focused all year.",
     type: "website",
     siteName: "Rank",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Rank - 2026 Vision Board",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Rank - 2026 Vision Board",
     description: "Simply type in your goals below. We will instantly transform them into a stunning image to keep you focused all year.",
+    images: ["/opengraph-image"],
   },
 };
 
