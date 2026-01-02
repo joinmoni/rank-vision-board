@@ -91,6 +91,27 @@ export default function CreatePage() {
             Type In Your Goal
           </h1>
 
+          {/* Email Input (Optional) */}
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
+              Email (Optional - we'll notify you when ready)
+            </label>
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#F97316] outline-none transition-all placeholder:text-gray-300"
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Form */}
           <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 mb-8 form-scroll">
             {goals.map((goal, index) => (

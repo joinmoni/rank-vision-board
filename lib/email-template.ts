@@ -35,7 +35,7 @@ export const visionBoardCompleteEmail = (boardUrl: string) => {
             <tr>
               <td style="padding: 40px 40px 20px 40px; text-align: center; background: #FFF9F3;">
                 <img
-                  src="https://rank-vision-board.vercel.app/rank-logo.svg"
+                  src="https://lbxtldblursbyqmtftfg.supabase.co/storage/v1/object/public/vision-boards/rank-logo.png"
                   alt="Rank Logo"
                   style="height: 35px; width: auto; margin-bottom: 20px;"
                 />

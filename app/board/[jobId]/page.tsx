@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import html2canvas from "html2canvas";
 
 export default function BoardPageByJobId() {
   const params = useParams();
@@ -94,14 +93,6 @@ export default function BoardPageByJobId() {
 
     return () => clearInterval(progressInterval);
   }, [loading]);
-
-  const getCollageElement = () => {
-    if (collageRef.current) {
-      return collageRef.current;
-    }
-    const element = document.querySelector('.board-result') as HTMLElement;
-    return element;
-  };
 
   const handleDownload = async () => {
     if (!imageUrl) {
@@ -221,67 +212,91 @@ export default function BoardPageByJobId() {
             </Link>
           </div>
 
+          {/* Heading (during loading) */}
+          {loading && (
+            <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
+              Creating your 2026 Vision Board....
+            </h1>
+          )}
+
           {/* Loading State */}
           {loading && (
-            <div className="mb-8">
-              <div className="mb-4">
-                <p className="text-lg font-bold text-[#1A1A1A] mb-2">
+            <div className="w-full flex justify-center mb-8">
+              <div className="w-full aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
+                <p className="text-gray-500 font-medium text-center mb-6">
                   Loading Vision board. Give us a min.....
                 </p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-[#FF7A00] h-2 rounded-full transition-all duration-100"
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="w-full max-w-[300px]">
+                  <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-[#F97316] h-full rounded-full transition-all duration-100 ease-linear"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="text-gray-400 text-sm text-center mt-2">
+                    {Math.round(progress)}%
+                  </p>
                 </div>
+                {jobStatus === "pending" && (
+                  <p className="text-sm text-gray-600 mt-4 text-center">
+                    Your job has been created. We'll email you when it's ready!
+                  </p>
+                )}
+                {jobStatus === "processing" && (
+                  <>
+                    <p className="text-sm text-gray-600 mt-4 text-center">
+                      Generating your vision board...
+                    </p>
+                    <p className="text-xs text-gray-500 mt-3 text-center max-w-[280px] mx-auto">
+                      Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
+                    </p>
+                  </>
+                )}
               </div>
-              {jobStatus === "pending" && (
-                <p className="text-sm text-gray-600">
-                  Your job has been created. We'll email you when it's ready!
-                </p>
-              )}
-              {jobStatus === "processing" && (
-                <p className="text-sm text-gray-600">
-                  Generating your vision board...
-                </p>
-              )}
             </div>
           )}
 
           {/* Error State */}
           {error && (
-            <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
+            <div className="w-full flex justify-center mb-8">
+              <div className="w-full aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
+                <p className="text-red-500 font-medium text-center px-4">{error}</p>
+              </div>
             </div>
+          )}
+
+          {/* Heading */}
+          {!loading && (
+            <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
+              Your 2026 Vision Board Is Complete
+            </h1>
+          )}
+
+          {/* Description */}
+          {!loading && (
+            <p className="text-[18px] text-[#4A3F35] mb-8">
+              Take a moment to pause, reflect, and see your goals come to life.
+            </p>
           )}
 
           {/* Image Display */}
           {imageUrl && !loading && (
-            <div className="mb-8">
-              <div
-                ref={collageRef}
-                className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-lg board-result"
-              >
-                <Image
-                  src={imageUrl}
-                  alt="Vision Board"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute top-4 left-4">
-                  <Image
-                    src="/rank-logo.svg"
-                    alt="Rank Logo"
-                    width={102}
-                    height={30}
-                    className="h-[30px] w-auto filter brightness-0 invert"
+            <>
+              <div className="mb-8 w-full flex justify-center">
+                <div
+                  ref={collageRef}
+                  className="w-full aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Vision Board"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               </div>
 
               {/* Buttons */}
-              <div className="flex flex-col gap-4 mt-6">
+              <div className="flex flex-col gap-4 mt-8">
                 <button
                   onClick={handleShare}
                   disabled={loading || !imageUrl}
@@ -326,22 +341,9 @@ export default function BoardPageByJobId() {
                   </svg>
                 </button>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Goals Display */}
-          {goals.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-xl font-bold text-[#1A1A1A] mb-4">Your Goals</h2>
-              <ul className="space-y-2">
-                {goals.map((goal, index) => (
-                  <li key={index} className="text-gray-700">
-                    {index + 1}. {goal}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       </div>
 
@@ -362,127 +364,138 @@ export default function BoardPageByJobId() {
             </Link>
           </div>
 
+          {/* Heading (during loading) */}
+          {loading && (
+            <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
+              Creating your 2026 Vision Board....
+            </h1>
+          )}
+
           {/* Loading State */}
           {loading && (
-            <div className="mb-8">
-              <div className="mb-4">
-                <p className="text-2xl font-bold text-[#1A1A1A] mb-4">
+            <div className="w-full flex justify-center mb-8">
+              <div className="w-full max-w-2xl aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
+                <p className="text-gray-500 font-medium text-center mb-6">
                   Loading Vision board. Give us a min.....
                 </p>
-                <div className="w-full max-w-2xl bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-[#FF7A00] h-3 rounded-full transition-all duration-100"
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="w-full max-w-[300px]">
+                  <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-[#F97316] h-full rounded-full transition-all duration-100 ease-linear"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="text-gray-400 text-sm text-center mt-2">
+                    {Math.round(progress)}%
+                  </p>
                 </div>
+                {jobStatus === "pending" && (
+                  <p className="text-base text-gray-600 mt-4 text-center">
+                    Your job has been created. We'll email you when it's ready!
+                  </p>
+                )}
+                {jobStatus === "processing" && (
+                  <>
+                    <p className="text-base text-gray-600 mt-4 text-center">
+                      Generating your vision board...
+                    </p>
+                    <p className="text-sm text-gray-500 mt-3 text-center max-w-md mx-auto">
+                      Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
+                    </p>
+                  </>
+                )}
               </div>
-              {jobStatus === "pending" && (
-                <p className="text-base text-gray-600">
-                  Your job has been created. We'll email you when it's ready!
-                </p>
-              )}
-              {jobStatus === "processing" && (
-                <p className="text-base text-gray-600">
-                  Generating your vision board...
-                </p>
-              )}
             </div>
           )}
 
           {/* Error State */}
           {error && (
-            <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 max-w-2xl">
-              {error}
+            <div className="w-full flex justify-center mb-8">
+              <div className="w-full max-w-2xl aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
+                <p className="text-red-500 font-medium text-center px-4">{error}</p>
+              </div>
             </div>
           )}
 
-          {/* Image Display */}
-          {imageUrl && !loading && (
-            <div className="mb-8">
-              <div
-                ref={collageRef}
-                className="relative w-full max-w-2xl aspect-square rounded-2xl overflow-hidden shadow-lg board-result"
-              >
-                <Image
-                  src={imageUrl}
-                  alt="Vision Board"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute top-4 left-4">
-                  <Image
-                    src="/rank-logo.svg"
-                    alt="Rank Logo"
-                    width={102}
-                    height={30}
-                    className="h-[30px] w-auto filter brightness-0 invert"
-                  />
+          {/* Content: Text/Buttons on left, Image on right */}
+          {!loading && imageUrl && (
+            <div className="flex flex-row gap-12 items-center min-h-[600px]">
+              {/* Left side: Text and Buttons */}
+              <div className="w-1/2 flex flex-col pr-8">
+                {/* Heading */}
+                <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
+                  Your 2026 Vision Board Is Complete
+                </h1>
+
+                {/* Description */}
+                <p className="text-[18px] text-[#4A3F35] mb-8">
+                  Take a moment to pause, reflect, and see your goals come to life.
+                </p>
+
+                {/* Buttons */}
+                <div className="flex flex-row gap-4">
+                  <button
+                    onClick={handleShare}
+                    disabled={loading || !imageUrl}
+                    className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Share Board
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={handleDownload}
+                    disabled={loading || !imageUrl}
+                    className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Download Board
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              {/* Buttons */}
-              <div className="flex flex-row gap-4 mt-6 max-w-2xl">
-                <button
-                  onClick={handleShare}
-                  disabled={loading || !imageUrl}
-                  className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              {/* Right side: Image */}
+              <div className="w-1/2 flex justify-end">
+                <div
+                  ref={collageRef}
+                  className="w-full max-w-full aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
                 >
-                  Share Board
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={handleDownload}
-                  disabled={loading || !imageUrl}
-                  className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Download Board
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                </button>
+                  <img
+                    src={imageUrl}
+                    alt="Vision Board"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Goals Display */}
-          {goals.length > 0 && (
-            <div className="mt-8 max-w-2xl">
-              <h2 className="text-2xl font-bold text-[#1A1A1A] mb-4">Your Goals</h2>
-              <ul className="space-y-2">
-                {goals.map((goal, index) => (
-                  <li key={index} className="text-gray-700 text-lg">
-                    {index + 1}. {goal}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       </div>
     </div>
