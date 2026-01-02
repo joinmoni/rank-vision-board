@@ -8,6 +8,9 @@ import { useRouter } from "next/navigation";
 export default function CreatePage() {
   const router = useRouter();
   const [goals, setGoals] = useState<string[]>(["", ""]);
+  const [email, setEmail] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const addGoal = () => {
     setGoals([...goals, ""]);
@@ -22,12 +25,45 @@ export default function CreatePage() {
   // Check if first 2 goals are filled
   const canGenerate = goals[0]?.trim() !== "" && goals[1]?.trim() !== "";
 
-  const handleGenerate = () => {
-    if (canGenerate) {
-      // Filter out empty goals and encode them in URL
-      const validGoals = goals.filter((goal) => goal.trim() !== "");
-      const goalsParam = encodeURIComponent(JSON.stringify(validGoals));
-      router.push(`/board?goals=${goalsParam}`);
+  const handleGenerate = async () => {
+    if (!canGenerate || isGenerating) return;
+
+    const validGoals = goals.filter((goal) => goal.trim() !== "");
+    
+    if (validGoals.length === 0) {
+      setError("Please enter at least one goal");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          goals: validGoals,
+          email: email.trim() || undefined, // Optional email
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create job");
+      }
+
+      const data = await response.json();
+      const jobId = data.jobId;
+
+      // Navigate to board page with jobId
+      router.push(`/board/${jobId}`);
+    } catch (err: any) {
+      console.error("Error creating job:", err);
+      setError(err.message || "Failed to start generation. Please try again.");
+      setIsGenerating(false);
     }
   };
 
@@ -101,14 +137,14 @@ export default function CreatePage() {
             </button>
             <button
               onClick={handleGenerate}
-              disabled={!canGenerate}
+              disabled={!canGenerate || isGenerating}
               className={`w-full py-[18px] rounded-[14px] text-[18px] font-bold transition-transform ${
-                canGenerate
+                canGenerate && !isGenerating
                   ? "bg-[#F97316] text-white cursor-pointer active:scale-[0.98]"
                   : "bg-[#FFD6B0] text-white cursor-not-allowed"
               }`}
             >
-              Generate Board
+              {isGenerating ? "Creating Job..." : "Generate Board"}
             </button>
           </div>
 
@@ -257,6 +293,27 @@ export default function CreatePage() {
               Type In Your Goal
             </h1>
 
+            {/* Email Input (Optional) */}
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
+                Email (Optional - we'll notify you when ready)
+              </label>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#FF7A00] outline-none transition-all placeholder:text-gray-300"
+              />
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
             <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 mb-10 form-scroll">
               {goals.map((goal, index) => (
                 <div key={index}>
@@ -301,14 +358,14 @@ export default function CreatePage() {
               </button>
               <button
                 onClick={handleGenerate}
-                disabled={!canGenerate}
+                disabled={!canGenerate || isGenerating}
                 className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg transition-all ${
-                  canGenerate
+                  canGenerate && !isGenerating
                     ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white cursor-pointer active:scale-95"
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
                 }`}
               >
-                Generate Board
+                {isGenerating ? "Creating Job..." : "Generate Board"}
               </button>
             </div>
           </div>

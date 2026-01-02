@@ -163,11 +163,11 @@ export default function BoardPage() {
       const offsetY = (mainImage.height - size) / 2;
       ctx.drawImage(mainImage, offsetX, offsetY, size, size, 0, 0, size, size);
 
-      // Draw logo in bottom right corner (white color)
+      // Draw logo in top left corner (white color)
       if (logoImage.complete && logoImage.naturalWidth > 0) {
         const logoSize = size * 0.1; // 10% of canvas size
-        const logoX = size - logoSize - size * 0.04; // 4% padding from right
-        const logoY = size - logoSize - size * 0.04; // 4% padding from bottom
+        const logoX = size * 0.04; // 4% padding from left
+        const logoY = size * 0.04; // 4% padding from top
         
         // Apply white color filter by drawing logo with composite operation
         ctx.globalCompositeOperation = 'source-over';
@@ -258,12 +258,12 @@ export default function BoardPage() {
       const offsetY = (mainImage.height - size) / 2;
       ctx.drawImage(mainImage, offsetX, offsetY, size, size, 0, 0, size, size);
 
-      // Draw logo in bottom right corner (white color)
+      // Draw logo in top left corner (white color)
       if (logoImage.complete && logoImage.naturalWidth > 0) {
         const logoSize = size * 0.1; // 10% of canvas size
         const logoHeight = logoSize * logoImage.height / logoImage.width;
-        const logoX = size - logoSize - size * 0.04; // 4% padding from right
-        const logoY = size - logoHeight - size * 0.04; // 4% padding from bottom
+        const logoX = size * 0.04; // 4% padding from left
+        const logoY = size * 0.04; // 4% padding from top
         
         // Create temporary canvas to apply white filter
         const tempCanvas = document.createElement('canvas');
