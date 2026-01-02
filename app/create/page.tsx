@@ -125,8 +125,8 @@ export default function CreatePage() {
                     index === 0
                       ? "e.g. Run a marathon"
                       : index === 1
-                      ? "e.g. Travel to Japan"
-                      : ""
+                        ? "e.g. Travel to Japan"
+                        : ""
                   }
                   value={goal}
                   onChange={(e) => updateGoal(index, e.target.value)}
@@ -148,11 +148,13 @@ export default function CreatePage() {
               }`}
             >
               Add Goal
-              <span className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
-                canGenerate
-                  ? "bg-white text-[#F97316]"
-                  : "bg-white/50 text-[#F97316]/50"
-              }`}>
+              <span
+                className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
+                  canGenerate
+                    ? "bg-white text-[#F97316]"
+                    : "bg-white/50 text-[#F97316]/50"
+                }`}
+              >
                 ＋
               </span>
             </button>
@@ -165,7 +167,7 @@ export default function CreatePage() {
                   : "bg-[#FFD6B0] text-white cursor-not-allowed"
               }`}
             >
-              {isGenerating ? "Creating Job..." : "Generate Board"}
+              {isGenerating ? "Creating board.." : "Generate Board"}
             </button>
           </div>
 
@@ -227,13 +229,24 @@ export default function CreatePage() {
       <div className="hidden lg:flex flex-row min-h-screen w-full overflow-hidden">
         {/* Left side - Collage */}
         <div className="w-1/2 relative overflow-hidden">
-          <div className="relative w-full h-screen min-h-[800px]" style={{ position: 'relative' }}>
+          <div
+            className="relative w-full h-screen min-h-[800px]"
+            style={{ position: "relative" }}
+          >
             <div className="vision-circle c-1 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] top-[-50px] left-[-100px] z-[5]">
               <img
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-1.png"
               />
             </div>
@@ -242,7 +255,15 @@ export default function CreatePage() {
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-2.png"
               />
             </div>
@@ -251,7 +272,15 @@ export default function CreatePage() {
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-3.png"
               />
             </div>
@@ -260,7 +289,15 @@ export default function CreatePage() {
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-4.png"
               />
             </div>
@@ -269,7 +306,15 @@ export default function CreatePage() {
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-5.png"
               />
             </div>
@@ -278,7 +323,15 @@ export default function CreatePage() {
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-6.png"
               />
             </div>
@@ -287,7 +340,15 @@ export default function CreatePage() {
                 alt=""
                 loading="lazy"
                 className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                style={{
+                  position: "absolute",
+                  height: "100%",
+                  width: "100%",
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
                 src="/image-7.png"
               />
             </div>
@@ -317,7 +378,7 @@ export default function CreatePage() {
             {/* Email Input (Optional) */}
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                Email (Optional - so we can send you your vision board)
+                Email (so we can send you your vision board)
               </label>
               <input
                 type="email"
@@ -347,8 +408,8 @@ export default function CreatePage() {
                       index === 0
                         ? "e.g. Run a marathon"
                         : index === 1
-                        ? "e.g. Travel to Japan"
-                        : ""
+                          ? "e.g. Travel to Japan"
+                          : ""
                     }
                     value={goal}
                     onChange={(e) => updateGoal(index, e.target.value)}
@@ -369,11 +430,13 @@ export default function CreatePage() {
                 }`}
               >
                 Add Goal
-                <span className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
-                  canGenerate
-                    ? "bg-white text-[#FF7A00]"
-                    : "bg-white/50 text-[#FF7A00]/50"
-                }`}>
+                <span
+                  className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
+                    canGenerate
+                      ? "bg-white text-[#FF7A00]"
+                      : "bg-white/50 text-[#FF7A00]/50"
+                  }`}
+                >
                   ＋
                 </span>
               </button>
@@ -386,7 +449,7 @@ export default function CreatePage() {
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
                 }`}
               >
-                {isGenerating ? "Creating Job..." : "Generate Board"}
+                {isGenerating ? "Creating Board..." : "Generate Board"}
               </button>
             </div>
           </div>
