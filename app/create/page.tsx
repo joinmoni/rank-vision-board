@@ -94,7 +94,7 @@ export default function CreatePage() {
           {/* Email Input (Optional) */}
           <div className="mb-6">
             <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-              Email (Optional - we'll notify you when ready)
+              Email (Optional - so we can send you your vision board)
             </label>
             <input
               type="email"
@@ -317,7 +317,7 @@ export default function CreatePage() {
             {/* Email Input (Optional) */}
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                Email (Optional - we'll notify you when ready)
+                Email (Optional - so we can send you your vision board)
               </label>
               <input
                 type="email"

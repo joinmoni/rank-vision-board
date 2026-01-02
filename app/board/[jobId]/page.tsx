@@ -243,14 +243,9 @@ export default function BoardPageByJobId() {
                   </p>
                 )}
                 {jobStatus === "processing" && (
-                  <>
-                    <p className="text-sm text-gray-600 mt-4 text-center">
-                      Generating your vision board...
-                    </p>
-                    <p className="text-xs text-gray-500 mt-3 text-center max-w-[280px] mx-auto">
-                      Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
-                    </p>
-                  </>
+                  <p className="text-xs text-gray-500 mt-4 text-center max-w-[280px] mx-auto">
+                    Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
+                  </p>
                 )}
               </div>
             </div>
@@ -378,14 +373,9 @@ export default function BoardPageByJobId() {
                   </p>
                 )}
                 {jobStatus === "processing" && (
-                  <>
-                    <p className="text-[18px] text-[#4A3F35] mb-4">
-                      Generating your vision board...
-                    </p>
-                    <p className="text-base text-gray-500">
-                      Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
-                    </p>
-                  </>
+                  <p className="text-base text-gray-500">
+                    Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
+                  </p>
                 )}
               </div>
 
