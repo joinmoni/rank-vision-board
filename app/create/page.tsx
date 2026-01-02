@@ -94,7 +94,7 @@ export default function CreatePage() {
           {/* Email Input (Optional) */}
           <div className="mb-6">
             <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-              Email (Optional - so we can send you your vision board)
+              Email (So we can send you your vision board once it's ready)
             </label>
             <input
               type="email"
