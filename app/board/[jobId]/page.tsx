@@ -364,46 +364,49 @@ export default function BoardPageByJobId() {
             </Link>
           </div>
 
-          {/* Heading (during loading) */}
+          {/* Loading State - 2 Column Layout */}
           {loading && (
-            <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-              Creating your 2026 Vision Board....
-            </h1>
-          )}
-
-          {/* Loading State */}
-          {loading && (
-            <div className="w-full flex justify-center mb-8">
-              <div className="w-full max-w-2xl aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
-                <p className="text-gray-500 font-medium text-center mb-6">
-                  Loading Vision board. Give us a min.....
-                </p>
-                <div className="w-full max-w-[300px]">
-                  <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-[#F97316] h-full rounded-full transition-all duration-100 ease-linear"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="text-gray-400 text-sm text-center mt-2">
-                    {Math.round(progress)}%
-                  </p>
-                </div>
+            <div className="flex flex-row gap-12 items-center min-h-[600px]">
+              {/* Left side: Text */}
+              <div className="w-1/2 flex flex-col pr-8">
+                <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
+                  Creating your 2026 Vision Board....
+                </h1>
                 {jobStatus === "pending" && (
-                  <p className="text-base text-gray-600 mt-4 text-center">
+                  <p className="text-[18px] text-[#4A3F35] mb-8">
                     Your job has been created. We'll email you when it's ready!
                   </p>
                 )}
                 {jobStatus === "processing" && (
                   <>
-                    <p className="text-base text-gray-600 mt-4 text-center">
+                    <p className="text-[18px] text-[#4A3F35] mb-4">
                       Generating your vision board...
                     </p>
-                    <p className="text-sm text-gray-500 mt-3 text-center max-w-md mx-auto">
+                    <p className="text-base text-gray-500">
                       Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
                     </p>
                   </>
                 )}
+              </div>
+
+              {/* Right side: Loading Indicator */}
+              <div className="w-1/2 flex justify-end">
+                <div className="w-full max-w-2xl aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
+                  <p className="text-gray-500 font-medium text-center mb-6">
+                    Loading Vision board. Give us a min.....
+                  </p>
+                  <div className="w-full max-w-[300px]">
+                    <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-[#F97316] h-full rounded-full transition-all duration-100 ease-linear"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="text-gray-400 text-sm text-center mt-2">
+                      {Math.round(progress)}%
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
