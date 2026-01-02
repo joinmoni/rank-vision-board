@@ -76,11 +76,11 @@ See `lib/vision-board-jobs-schema.md` for the Supabase table schema.
 ### Firebase Functions
 - `OPENAI_API_KEY` - OpenAI API key
 - `SUPABASE_URL` - Supabase project URL (or use NEXT_PUBLIC_SUPABASE_URL)
-- `SUPABASE_SERVICE_KEY` - Supabase service role key (or use NEXT_PUBLIC_SUPABASE_SERVICE_KEY)
+- `SUPABASE_SERVICE_KEY` - Supabase service role key
 
 ### Next.js App
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_SERVICE_KEY` - Supabase service role key
+- `SUPABASE_SERVICE_KEY` - Supabase service role key (server-side only)
 - `NEXT_PUBLIC_SITE_URL` - App URL (defaults to rank-vision-board.vercel.app)
 - `QSTASH_TOKEN` - Upstash QStash token
 - `RESEND_API_KEY` - Resend API key

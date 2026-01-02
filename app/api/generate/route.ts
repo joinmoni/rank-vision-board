@@ -3,17 +3,24 @@ import { createClient } from "@supabase/supabase-js";
 import { Client } from "@upstash/qstash";
 import { FIREBASE_FUNCTION_URL } from "@/lib/constants";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!;
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error("Supabase environment variables are not set");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase environment variables are not set");
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-const qstash = new Client({
-  token: process.env.QSTASH_TOKEN!,
-});
+function getQStashClient() {
+  const token = process.env.QSTASH_TOKEN;
+  if (!token) {
+    throw new Error("QSTASH_TOKEN environment variable is not set");
+  }
+  return new Client({ token });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,13 +29,6 @@ export async function POST(request: NextRequest) {
     if (!goals || !Array.isArray(goals) || goals.length === 0) {
       return NextResponse.json(
         { error: "Goals array is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { error: "Email is required" },
         { status: 400 }
       );
     }
@@ -43,11 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const supabase = getSupabaseClient();
+
     // Create job record in database
     const { data: jobData, error: jobError } = await supabase
       .from("vision_board_jobs")
       .insert({
-        email,
+        email: email || null,
         goals: validGoals,
         status: "pending",
       })
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Queue the job to Firebase Function via QStash
     try {
+      const qstash = getQStashClient();
       const qstashResult = await qstash.publishJSON({
         url: FIREBASE_FUNCTION_URL,
         body: {

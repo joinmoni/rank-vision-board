@@ -1,28 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!;
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error("Supabase environment variables are not set");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase environment variables are not set");
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ jobId: string }> | { jobId: string } }
 ) {
   try {
-    // Handle both sync (Next.js < 15) and async (Next.js 15+) params
-    const params = context.params instanceof Promise 
-      ? await context.params 
-      : context.params;
-    
-    console.log("API route params:", params);
+    // Handle both sync and async params (Next.js 15+ uses Promise)
+    const params = await Promise.resolve(context.params);
     const jobId = params.jobId;
-    console.log("Extracted jobId:", jobId);
 
     if (!jobId) {
       console.error("No jobId found in params:", params);
@@ -32,6 +29,7 @@ export async function GET(
       );
     }
 
+    const supabase = getSupabaseClient();
     const { data: job, error } = await supabase
       .from("vision_board_jobs")
       .select("*")
