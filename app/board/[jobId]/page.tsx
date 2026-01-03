@@ -224,7 +224,8 @@ export default function BoardPageByJobId() {
             <div className="w-full flex justify-center mb-8">
               <div className="w-full aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
                 <p className="text-gray-500 font-medium text-center mb-6">
-                  Loading Vision board. Give us a min.....
+                  Our design intern is cooking up your vision board.<br />
+                  Give her a minute..
                 </p>
                 <div className="w-full max-w-[300px]">
                   <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
@@ -336,6 +337,14 @@ export default function BoardPageByJobId() {
                   </svg>
                 </button>
               </div>
+
+              {/* Create New Link */}
+              <Link
+                href="/create"
+                className="text-[#F97316] hover:text-[#E66D00] font-medium text-lg transition-colors underline underline-offset-4 text-center block mt-8"
+              >
+                Create a new vision board
+              </Link>
             </>
           )}
 
@@ -383,7 +392,8 @@ export default function BoardPageByJobId() {
               <div className="w-1/2 flex justify-end">
                 <div className="w-full max-w-2xl aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
                   <p className="text-gray-500 font-medium text-center mb-6">
-                    Loading Vision board. Give us a min.....
+                    Our design intern is cooking up your vision board.<br />
+                    Give her a minute..
                   </p>
                   <div className="w-full max-w-[300px]">
                     <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
@@ -471,6 +481,14 @@ export default function BoardPageByJobId() {
                     </svg>
                   </button>
                 </div>
+
+                {/* Create New Link */}
+                <Link
+                  href="/create"
+                  className="text-[#FF7A00] hover:text-[#E66D00] font-medium text-lg transition-colors underline underline-offset-4 mt-8"
+                >
+                  Create a new vision board
+                </Link>
               </div>
 
               {/* Right side: Image */}

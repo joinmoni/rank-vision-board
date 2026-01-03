@@ -16,6 +16,17 @@ export type LayoutTemplate = "editorial_grid" | "soft_collage" | "minimal_blocks
 export type ImageSearchQuery = {
   query: string;
   orientation: "portrait" | "square" | "landscape";
+  // Goal metadata for quota-based selection
+  goalIndex?: number;
+  goalText?: string;
+  intent?: "must_have" | "nice_to_have";
+};
+
+export type ImageWithGoal = ImageAsset & {
+  goalIndex: number;
+  goalText: string;
+  relevanceScore?: number;
+  matchedQuery?: string;
 };
 
 export type ImageAsset = {

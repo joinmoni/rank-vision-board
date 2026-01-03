@@ -38,13 +38,48 @@ export default function CreatePage() {
     setIsGenerating(true);
     setError(null);
 
-    // Store goals in sessionStorage and navigate immediately to show loader
-    sessionStorage.setItem('visionBoardGoals', JSON.stringify(validGoals));
-    sessionStorage.setItem('visionBoardEmail', email.trim() || '');
-    sessionStorage.removeItem('visionBoardImage'); // Clear any old image
-    
-    // Navigate to board page immediately (will trigger generation there)
-    router.push('/board');
+    try {
+      // Use local generation if enabled, otherwise use Firebase Functions
+      const generateRoute = process.env.NEXT_PUBLIC_USE_LOCAL_GENERATION === "true" 
+        ? "/api/generate-local" 
+        : "/api/generate";
+      
+      const response = await fetch(generateRoute, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          goals: validGoals, 
+          email: email.trim() || undefined,
+          uploadToStorage: true, // Upload to Supabase for local route too
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create vision board job");
+      }
+
+      const data = await response.json();
+      
+      // Handle both job-based (Firebase/local with storage) and direct image responses
+      if (data.jobId) {
+        // Job-based flow: redirect to board page
+        router.push(`/board/${data.jobId}`);
+      } else if (data.imageDataUrl) {
+        // Direct image flow: store in sessionStorage and redirect
+        sessionStorage.setItem("visionBoardImage", data.imageDataUrl);
+        sessionStorage.setItem("visionBoardGoals", JSON.stringify(validGoals));
+        router.push("/board");
+      } else {
+        throw new Error("No job ID or image data returned");
+      }
+    } catch (err: any) {
+      console.error("Error creating job:", err);
+      setError(err.message || "Failed to create vision board. Please try again.");
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -71,8 +106,8 @@ export default function CreatePage() {
             Type In Your Goal
           </h1>
 
-          {/* Email Input (Optional) - HIDDEN FOR NOW */}
-          {/* <div className="mb-6">
+          {/* Email Input (Optional) */}
+          <div className="mb-6">
             <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
               Email (So we can send you your vision board once it's ready)
             </label>
@@ -83,7 +118,7 @@ export default function CreatePage() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#F97316] outline-none transition-all placeholder:text-gray-300"
             />
-          </div> */}
+          </div>
 
           {/* Error Message */}
           {error && (
@@ -355,8 +390,8 @@ export default function CreatePage() {
               Type In Your Goal
             </h1>
 
-                    {/* Email Input (Optional) - HIDDEN FOR NOW */}
-                    {/* <div className="mb-6">
+                    {/* Email Input (Optional) */}
+                    <div className="mb-6">
                       <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
                         Email (so we can send you your vision board)
                       </label>
@@ -367,7 +402,7 @@ export default function CreatePage() {
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#FF7A00] outline-none transition-all placeholder:text-gray-300"
                       />
-                    </div> */}
+                    </div>
 
             {/* Error Message */}
             {error && (

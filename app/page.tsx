@@ -41,51 +41,51 @@ export default function Home() {
 
           {/* Vision Grid */}
           <div className="grid grid-cols-2 gap-3 w-full">
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
+            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
               <img
                 src="/image-1.png"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
             </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden row-span-2 aspect-[1/2] shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
+            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
               <img
                 src="/image-2.png"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
             </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
+            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
               <img
                 src="/image-3.png"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
             </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden col-span-2 aspect-[2/1] shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
+            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
               <img
                 src="/image-4.png"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
             </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
+            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
               <img
                 src="/image-5.png"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
             </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
+            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
               <img
                 src="/image-6.png"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
             </div>
@@ -98,84 +98,75 @@ export default function Home() {
         {/* Left side - Circular Collage */}
         <div className="w-1/2 relative overflow-hidden">
           <div className="relative w-full h-screen min-h-[800px]" style={{ position: 'relative' }}>
-            <div className="vision-circle c-1 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] top-[-50px] left-[-100px] z-[5]">
+            <div className="vision-circle c-1 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] aspect-square top-[-50px] left-[-100px] z-[5]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-1.png"
               />
             </div>
-            <div className="vision-circle c-2 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[340px] h-[340px] top-[-80px] left-[180px] z-[4]">
+            <div className="vision-circle c-2 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[340px] h-[340px] aspect-square top-[-80px] left-[180px] z-[4]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-2.png"
               />
             </div>
-            <div className="vision-circle c-3 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[220px] h-[220px] top-[180px] left-[160px] z-[3]">
+            <div className="vision-circle c-3 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[220px] h-[220px] aspect-square top-[180px] left-[160px] z-[3]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-3.png"
               />
             </div>
-            <div className="vision-circle c-4 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[380px] h-[380px] top-[260px] left-[-120px] z-[6]">
+            <div className="vision-circle c-4 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[380px] h-[380px] aspect-square top-[260px] left-[-120px] z-[6]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-4.png"
               />
             </div>
-            <div className="vision-circle c-5 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[420px] h-[420px] top-[280px] left-[220px] z-[2]">
+            <div className="vision-circle c-5 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[420px] h-[420px] aspect-square top-[280px] left-[220px] z-[2]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-5.png"
               />
             </div>
-            <div className="vision-circle c-6 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[280px] h-[280px] top-[540px] left-[100px] z-[7]">
+            <div className="vision-circle c-6 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[280px] h-[280px] aspect-square top-[540px] left-[100px] z-[7]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-6.png"
               />
             </div>
-            <div className="vision-circle c-7 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[520px] h-[520px] top-[620px] left-[320px] z-[1]">
+            <div className="vision-circle c-7 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[520px] h-[520px] aspect-square top-[620px] left-[320px] z-[1]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-7.png"
               />
             </div>
-            <div className="vision-circle c-8 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] top-[620px] left-[-80px] z-[8]">
+            <div className="vision-circle c-8 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] aspect-square top-[620px] left-[-80px] z-[8]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-1.png"
               />
             </div>
-            <div className="vision-circle c-9 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[400px] h-[400px] top-[780px] left-[60px] z-[9]">
+            <div className="vision-circle c-9 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[400px] h-[400px] aspect-square top-[780px] left-[60px] z-[9]">
               <img
                 alt=""
                 loading="lazy"
-                className="object-cover"
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0 }}
+                className="object-cover object-center w-full h-full"
                 src="/image-2.png"
               />
             </div>

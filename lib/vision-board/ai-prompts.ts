@@ -2,7 +2,7 @@
  * OpenAI Prompt Functions
  * 
  * Uses OpenAI for intelligence only:
- * 1. Convert user goals into Pexels-friendly image search queries
+ * 1. Convert user goals into Pexels-friendly image search queries (SEARCH TAGS)
  * 2. Generate motivational text blocks
  */
 
@@ -10,94 +10,151 @@ import OpenAI from "openai";
 import { UserGoals, ImageSearchQuery, TextBlock } from "./types";
 
 /**
- * Convert user goals into lifestyle photography search queries
- * Optimized for Pexels (Instagram-style, descriptive queries)
+ * Convert user goals into concrete, visual, location-aware SEARCH TAGS
+ * Tags are used to query Pexels (not to generate images directly)
  */
 export async function generateImageSearchQueries(
   openai: OpenAI | undefined,
   userGoals: UserGoals
 ): Promise<ImageSearchQuery[]> {
-  console.log("🔍 [AI-PROMPTS] Generating search queries...");
+  
+  console.log("🔍 [AI-PROMPTS] Generating search tags from goals...");
   console.log("   - Goals:", userGoals.goals);
   console.log("   - OpenAI available:", !!openai);
   
-    // If OpenAI is not available, use simple fallback (with black people preference)
-    if (!openai) {
-      console.log("⚠️  [AI-PROMPTS] OpenAI not available, using simple fallback queries");
-      const fallbackQueries = userGoals.goals
-        .filter((goal) => goal.trim() !== "")
-        .slice(0, 10)
-        .map((goal) => ({
-          query: `black people ${goal.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim()}`,
-          orientation: "landscape" as const,
-        }));
-      console.log("📝 [AI-PROMPTS] Fallback queries:", fallbackQueries);
-      return fallbackQueries;
+  // If OpenAI is not available, use simple fallback (maintaining goal separation)
+  if (!openai) {
+    console.log("⚠️  [AI-PROMPTS] OpenAI not available, using simple fallback queries");
+    const fallbackQueries: ImageSearchQuery[] = [];
+    const validGoals = userGoals.goals.filter((goal) => goal.trim() !== "");
+    
+    for (const goal of validGoals.slice(0, 10)) {
+      const cleanedGoal = goal.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+      
+      // Detect location tokens for travel goals
+      const locationTokens: Record<string, string> = {
+        "paris": "Paris France",
+        "tokyo": "Tokyo Japan",
+        "japan": "Tokyo Japan",
+        "dubai": "Dubai UAE",
+        "new york": "New York USA",
+        "london": "London UK",
+      };
+      
+      let locationToken = "";
+      for (const [key, value] of Object.entries(locationTokens)) {
+        if (cleanedGoal.includes(key)) {
+          locationToken = value;
+          break;
+        }
+      }
+      
+      // Generate 3 queries per goal in fallback
+      fallbackQueries.push({
+        query: `black woman ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "landscape" as const,
+      });
+      fallbackQueries.push({
+        query: `woman of color ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "portrait" as const,
+      });
+      fallbackQueries.push({
+        query: `${cleanedGoal} real life scene${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "landscape" as const,
+      });
     }
+    
+    console.log(`📝 [AI-PROMPTS] Fallback: Generated ${fallbackQueries.length} queries for ${validGoals.length} goal(s)`);
+    return fallbackQueries;
+  }
+
   const goalsList = userGoals.goals
     .map((goal, index) => `${index + 1}. ${goal.trim()}`)
     .join("\n");
 
-  const vibeContext = userGoals.vibe
-    ? `The user's preferred vibe is: ${userGoals.vibe}.`
-    : "";
-
-  const prompt = `You are an expert visual curator creating a social-media-style vision board collage.
-
-The final output MUST look like a real Pinterest / Instagram mood board made by a human — not a clean UI, not a poster, not a graphic design layout.
-
-Think:
-- saved Instagram photos
-- camera roll moments
-- messy but intentional
-- emotionally rich
-- aspirational lifestyle energy
-
-Generate image search queries for a vision board collage.
-
-IMPORTANT STYLE RULES:
-- Images must feel like real social media photos, not stock photography
-- Prefer candid moments, imperfect framing, cropped bodies, motion, laughter
-- Prioritize lifestyle scenes over concepts
-- No studio shots, no minimal product photos, no isolated objects
-- Photos should feel like they were taken by friends on phones
-
-CONTENT RULES:
-- Focus on people, routines, environments, moments
-- Include Black women / Black people explicitly
-- Use warm, emotional, real-life situations
-
-AESTHETIC:
-- Pinterest mood board
-- Instagram saved posts
-- Vision board taped together
-- Soft chaos, not symmetry
+  const prompt = `You are generating Pexels search phrases (not AI images). Pexels returns real photos, so queries must be CONCRETE, VISUAL, and LOCATION-SPECIFIC.
 
 User Goals:
 ${goalsList}
-${vibeContext}
 
-Generate 10–15 short, concrete, Pexels-friendly queries.
-Avoid abstract words like "success", "growth", "confidence".
+Return ONLY valid JSON using the schema below.
 
-For each query, determine the best orientation: portrait, square, or landscape.
+========================================
+HARD RULES (NON-NEGOTIABLE)
+========================================
 
-Output format (JSON object with "queries" array):
+A) PER-GOAL OUTPUT ONLY
+- Treat each goal separately.
+- Output 6 queries per goal (exactly).
+- Each goal must include:
+  - 4 "must_have"
+  - 2 "nice_to_have"
+
+B) MUST_HAVE QUERIES MUST CONTAIN VISUAL ANCHORS
+Each goal must_have queries must include strong anchors:
+
+If the goal is TRAVEL TO PARIS:
+- At least 3 of the 4 must_have queries MUST include one of:
+  "Eiffel Tower", "Louvre", "Seine river", "Montmartre", "Paris Metro"
+- Always include "Paris France" in the query to avoid generic "street/cafe" photos from other countries.
+- Example formats:
+  "Eiffel Tower Paris France street"
+  "Seine river bridge Paris France"
+  "Louvre Museum Paris France exterior"
+  "Montmartre Paris France street stairs"
+  "Paris Metro station Paris France"
+
+If the goal is ATTEND A MUSIC CONCERT:
+- At least 3 of the 4 must_have queries MUST include one of:
+  "concert stage", "crowd", "audience", "stage lights", "live performance", "microphone"
+- These must be literal (not vibes):
+  "concert stage lights crowd"
+  "singer microphone live performance"
+  "audience hands up concert lights"
+  "live music venue stage"
+
+C) BAN GENERIC LIFESTYLE QUERIES
+- Do NOT generate generic queries like:
+  "friends at cafe", "people eating", "restaurant", "friends hanging out"
+  unless they also include the goal anchors above.
+- Specifically:
+  - If you use "cafe" for Paris, it MUST be:
+    "Paris cafe exterior signage Paris France" (or include Eiffel/Seine/Louvre/Montmartre/Metro)
+
+D) PEOPLE OF COLOR PREFERENCE (WHEN PEOPLE APPEAR)
+- For queries that include people, prefer:
+  "black woman", "woman of color", "diverse friends", "black couple", "people of color"
+- Do NOT force POC descriptors on pure landmark shots.
+- At least 3 of the 6 queries per goal should include a POC descriptor IF the query includes people.
+
+E) QUERY SHAPE
+- 5–12 words.
+- Photo-real, concrete.
+- Avoid abstract words like: abundance, manifest, success, destiny.
+- Avoid indoor office/work terms unless the goal asks for it.
+
+F) GLOBAL NEGATIVES
+Include:
+tomato, tomatoes, produce, vegetable vendor, market stall, fruit stand, bazaar, agriculture, farming,
+office meeting, team meeting, coworkers
+
+========================================
+OUTPUT JSON SCHEMA
+========================================
 {
-  "queries": [
+  "goals": [
     {
-      "query": "black women laughing together cafe candid",
-      "orientation": "portrait"
-    },
-    {
-      "query": "black woman morning routine bed natural light",
-      "orientation": "landscape"
+      "goal": "<exact original goal text>",
+      "mustHaveVisuals": ["...3-6 anchors..."],
+      "queries": [
+        { "query": "...", "orientation": "portrait|landscape|square", "intent": "must_have|nice_to_have" }
+      ]
     }
-  ]
+  ],
+  "globalNegatives": ["..."]
 }
 
-Return only the list of queries.
-Return ONLY valid JSON, no markdown, no explanation.`;
+Return ONLY JSON.`;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -106,7 +163,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
         {
           role: "system",
           content:
-            "You are an expert visual curator creating social-media-style vision board collages. Generate queries for real Instagram/Pinterest-style photos - candid, imperfect, emotionally rich. Always return valid JSON objects with a 'queries' array.",
+            "You generate goal-specific, high-signal Pexels search queries. Each goal gets its own queries array (5-7 queries). Include visual anchors (landmarks, stage/crowd). Prefer people of color when people appear. Label queries as must_have (core imagery) or nice_to_have (supporting context). Return valid JSON with 'goals' array and 'globalNegatives' array.",
         },
         {
           role: "user",
@@ -114,7 +171,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
         },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.8,
+      temperature: 0.4,
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -127,52 +184,152 @@ Return ONLY valid JSON, no markdown, no explanation.`;
     try {
       parsed = JSON.parse(content);
     } catch {
-      // If direct array, use it; otherwise try to extract from object
       const arrayMatch = content.match(/\[[\s\S]*\]/);
       if (arrayMatch) {
-        parsed = { queries: JSON.parse(arrayMatch[0]) };
+        parsed = { goals: JSON.parse(arrayMatch[0]) };
       } else {
         throw new Error("Could not parse JSON response");
       }
     }
 
-    // Handle both direct array and object with queries key
-    const queries: ImageSearchQuery[] = Array.isArray(parsed)
-      ? parsed
-      : parsed.queries || parsed.results || [];
-
-    // Validate and ensure we have queries
-    if (!Array.isArray(queries) || queries.length === 0) {
-      throw new Error("Invalid query format from OpenAI");
+    // Handle new structured format with goals array
+    let allQueries: ImageSearchQuery[] = [];
+    
+    if (parsed.goals && Array.isArray(parsed.goals)) {
+      // New format: goals array with queries per goal
+      console.log(`📋 [AI-PROMPTS] Parsed ${parsed.goals.length} goal(s) with structured queries`);
+      
+      for (let goalIndex = 0; goalIndex < parsed.goals.length; goalIndex++) {
+        const goalData = parsed.goals[goalIndex];
+        const goalText = goalData.goal || "";
+        const queries = goalData.queries || [];
+        const mustHaveVisuals = goalData.mustHaveVisuals || [];
+        
+        console.log(`   Goal ${goalIndex}: "${goalText}"`);
+        console.log(`   - Must-have visuals: ${mustHaveVisuals.join(", ")}`);
+        console.log(`   - Queries: ${queries.length}`);
+        
+        // Sort queries so must_have comes first (priority order)
+        const sorted = [...queries].sort((a, b) => {
+          const ai = a.intent === "must_have" ? 0 : 1;
+          const bi = b.intent === "must_have" ? 0 : 1;
+          return ai - bi;
+        });
+        
+        for (const q of sorted) {
+          if (q.query) {
+            allQueries.push({
+              query: q.query,
+              orientation:
+                q.orientation === "portrait" ||
+                q.orientation === "square" ||
+                q.orientation === "landscape"
+                  ? q.orientation
+                  : "landscape",
+              goalIndex,
+              goalText,
+              intent: q.intent === "must_have" || q.intent === "nice_to_have" ? q.intent : undefined,
+            });
+            console.log(`     - "${q.query}" [${q.orientation || "landscape"}] (${q.intent || "unknown"})`);
+          }
+        }
+      }
+      
+      if (parsed.globalNegatives && Array.isArray(parsed.globalNegatives)) {
+        console.log(`   Global negatives: ${parsed.globalNegatives.join(", ")}`);
+      }
+    } else if (parsed.queries && Array.isArray(parsed.queries)) {
+      // Fallback: old format with flat queries array (no goal metadata)
+      console.log("⚠️  [AI-PROMPTS] Received old format (flat queries array), using as-is");
+      allQueries = parsed.queries.map((q: any) => ({
+        query: q.query || String(q),
+        orientation:
+          q.orientation === "portrait" ||
+          q.orientation === "square" ||
+          q.orientation === "landscape"
+            ? q.orientation
+            : "landscape",
+      }));
+    } else if (Array.isArray(parsed)) {
+      // Fallback: direct array (no goal metadata)
+      console.log("⚠️  [AI-PROMPTS] Received direct array format, using as-is");
+      allQueries = parsed.map((q: any) => ({
+        query: q.query || String(q),
+        orientation:
+          q.orientation === "portrait" ||
+          q.orientation === "square" ||
+          q.orientation === "landscape"
+            ? q.orientation
+            : "landscape",
+      }));
+    } else {
+      throw new Error("Invalid query format from OpenAI: expected 'goals' array or 'queries' array");
     }
 
-    // Ensure valid orientations
-    return queries.map((q) => ({
-      query: q.query || String(q),
-      orientation:
-        q.orientation === "portrait" ||
-        q.orientation === "square" ||
-        q.orientation === "landscape"
-          ? q.orientation
-          : "landscape",
-    }));
+    // Validate and ensure we have queries
+    if (!Array.isArray(allQueries) || allQueries.length === 0) {
+      throw new Error("No queries found in OpenAI response");
+    }
+    
+    console.log(`✅ [AI-PROMPTS] Generated ${allQueries.length} total queries across all goals`);
+    
+    return allQueries;
   } catch (error: any) {
     console.error("⚠️  [AI-PROMPTS] Error generating search queries, using fallback:", error);
-    // Fallback: create basic queries from goals (with black people preference)
-    const fallbackQueries = userGoals.goals
-      .filter((goal) => goal.trim() !== "")
-      .slice(0, 10)
-      .map((goal) => ({
-        query: `black people ${goal.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim()}`,
+    // Fallback: create basic queries from goals (with POC preference, maintaining goal separation)
+    const fallbackQueries: ImageSearchQuery[] = [];
+    const validGoals = userGoals.goals.filter((goal) => goal.trim() !== "");
+    
+    for (let goalIndex = 0; goalIndex < validGoals.slice(0, 10).length; goalIndex++) {
+      const goal = validGoals[goalIndex];
+      const cleanedGoal = goal.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+      
+      // Detect location tokens for travel goals
+      const locationTokens: Record<string, string> = {
+        "paris": "Paris France",
+        "tokyo": "Tokyo Japan",
+        "japan": "Tokyo Japan",
+        "dubai": "Dubai UAE",
+        "new york": "New York USA",
+        "london": "London UK",
+      };
+      
+      let locationToken = "";
+      for (const [key, value] of Object.entries(locationTokens)) {
+        if (cleanedGoal.includes(key)) {
+          locationToken = value;
+          break;
+        }
+      }
+      
+      // Generate 3 queries per goal in fallback (with goal metadata)
+      fallbackQueries.push({
+        query: `black woman ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
         orientation: "landscape" as const,
-      }));
-    console.log("📝 [AI-PROMPTS] Fallback queries:", fallbackQueries);
+        goalIndex,
+        goalText: goal,
+      });
+      fallbackQueries.push({
+        query: `woman of color ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "portrait" as const,
+        goalIndex,
+        goalText: goal,
+      });
+      fallbackQueries.push({
+        query: `${cleanedGoal} real life scene${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "landscape" as const,
+        goalIndex,
+        goalText: goal,
+      });
+    }
+    
+    console.log(`📝 [AI-PROMPTS] Fallback: Generated ${fallbackQueries.length} queries for ${validGoals.length} goal(s)`);
     return fallbackQueries;
   }
 }
 
 /**
- * Generate 2-3 short, elegant motivational affirmations
+ * Generate 2-4 short, elegant motivational affirmations
  */
 export async function generateMotivationalText(
   openai: OpenAI | undefined,
@@ -195,6 +352,7 @@ export async function generateMotivationalText(
     console.log("📝 [AI-PROMPTS] Dummy texts:", dummyTexts);
     return dummyTexts;
   }
+
   const goalsList = userGoals.goals
     .map((goal, index) => `${index + 1}. ${goal.trim()}`)
     .join("\n");
@@ -315,4 +473,3 @@ Return ONLY valid JSON, no markdown, no explanation.`;
     return fallbackTexts;
   }
 }
-
