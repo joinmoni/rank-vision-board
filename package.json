@@ -20,7 +20,8 @@
     "pexels": "^1.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^4.7.0"
+    "resend": "^4.7.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

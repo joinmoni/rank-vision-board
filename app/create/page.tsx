@@ -38,33 +38,13 @@ export default function CreatePage() {
     setIsGenerating(true);
     setError(null);
 
-    try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          goals: validGoals,
-          email: email.trim() || undefined, // Optional email
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create job");
-      }
-
-      const data = await response.json();
-      const jobId = data.jobId;
-
-      // Navigate to board page with jobId
-      router.push(`/board/${jobId}`);
-    } catch (err: any) {
-      console.error("Error creating job:", err);
-      setError(err.message || "Failed to start generation. Please try again.");
-      setIsGenerating(false);
-    }
+    // Store goals in sessionStorage and navigate immediately to show loader
+    sessionStorage.setItem('visionBoardGoals', JSON.stringify(validGoals));
+    sessionStorage.setItem('visionBoardEmail', email.trim() || '');
+    sessionStorage.removeItem('visionBoardImage'); // Clear any old image
+    
+    // Navigate to board page immediately (will trigger generation there)
+    router.push('/board');
   };
 
   return (
@@ -91,8 +71,8 @@ export default function CreatePage() {
             Type In Your Goal
           </h1>
 
-          {/* Email Input (Optional) */}
-          <div className="mb-6">
+          {/* Email Input (Optional) - HIDDEN FOR NOW */}
+          {/* <div className="mb-6">
             <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
               Email (So we can send you your vision board once it's ready)
             </label>
@@ -103,7 +83,7 @@ export default function CreatePage() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#F97316] outline-none transition-all placeholder:text-gray-300"
             />
-          </div>
+          </div> */}
 
           {/* Error Message */}
           {error && (
@@ -375,19 +355,19 @@ export default function CreatePage() {
               Type In Your Goal
             </h1>
 
-            {/* Email Input (Optional) */}
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                Email (so we can send you your vision board)
-              </label>
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#FF7A00] outline-none transition-all placeholder:text-gray-300"
-              />
-            </div>
+                    {/* Email Input (Optional) - HIDDEN FOR NOW */}
+                    {/* <div className="mb-6">
+                      <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
+                        Email (so we can send you your vision board)
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#FF7A00] outline-none transition-all placeholder:text-gray-300"
+                      />
+                    </div> */}
 
             {/* Error Message */}
             {error && (

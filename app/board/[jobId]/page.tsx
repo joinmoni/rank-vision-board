@@ -222,7 +222,7 @@ export default function BoardPageByJobId() {
           {/* Loading State */}
           {loading && (
             <div className="w-full flex justify-center mb-8">
-              <div className="w-full aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
+              <div className="w-full aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
                 <p className="text-gray-500 font-medium text-center mb-6">
                   Loading Vision board. Give us a min.....
                 </p>
@@ -254,7 +254,7 @@ export default function BoardPageByJobId() {
           {/* Error State */}
           {error && (
             <div className="w-full flex justify-center mb-8">
-              <div className="w-full aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
+              <div className="w-full aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
                 <p className="text-red-500 font-medium text-center px-4">{error}</p>
               </div>
             </div>
@@ -280,7 +280,7 @@ export default function BoardPageByJobId() {
               <div className="mb-8 w-full flex justify-center">
                 <div
                   ref={collageRef}
-                  className="w-full aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
+                  className="w-full aspect-[1654/2339] bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
                 >
                   <img
                     src={imageUrl}
@@ -381,7 +381,7 @@ export default function BoardPageByJobId() {
 
               {/* Right side: Loading Indicator */}
               <div className="w-1/2 flex justify-end">
-                <div className="w-full max-w-2xl aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
+                <div className="w-full max-w-2xl aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
                   <p className="text-gray-500 font-medium text-center mb-6">
                     Loading Vision board. Give us a min.....
                   </p>
@@ -404,7 +404,7 @@ export default function BoardPageByJobId() {
           {/* Error State */}
           {error && (
             <div className="w-full flex justify-center mb-8">
-              <div className="w-full max-w-2xl aspect-square bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
+              <div className="w-full max-w-2xl aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
                 <p className="text-red-500 font-medium text-center px-4">{error}</p>
               </div>
             </div>
@@ -477,7 +477,7 @@ export default function BoardPageByJobId() {
               <div className="w-1/2 flex justify-end">
                 <div
                   ref={collageRef}
-                  className="w-full max-w-full aspect-square bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
+                  className="w-full max-w-full aspect-[1654/2339] bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
                 >
                   <img
                     src={imageUrl}

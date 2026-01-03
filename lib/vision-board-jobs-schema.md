@@ -112,3 +112,4 @@ ORDER BY created_at DESC;
 SELECT * FROM vision_board_jobs WHERE id = 'job-uuid-here';
 ```
 
+

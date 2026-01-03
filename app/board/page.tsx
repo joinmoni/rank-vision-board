@@ -25,7 +25,53 @@ export default function BoardPage() {
       return;
     }
 
-    // Get goals from URL params
+    // First, check sessionStorage for completed image
+    try {
+      const storedImage = sessionStorage.getItem('visionBoardImage');
+      const storedGoals = sessionStorage.getItem('visionBoardGoals');
+      
+      if (storedImage) {
+        console.log("Found completed image in sessionStorage");
+        setImageUrl(storedImage);
+        setLoading(false);
+        
+        if (storedGoals) {
+          try {
+            const goalsList = JSON.parse(storedGoals);
+            setGoals(goalsList);
+          } catch (err) {
+            console.warn("Could not parse stored goals");
+          }
+        }
+        
+        // Clear sessionStorage after reading
+        sessionStorage.removeItem('visionBoardImage');
+        sessionStorage.removeItem('visionBoardGoals');
+        sessionStorage.removeItem('visionBoardEmail');
+        hasFetchedRef.current = true;
+        return;
+      }
+    } catch (err) {
+      console.warn("Error reading sessionStorage:", err);
+    }
+
+    // Check for goals in sessionStorage (new generation flow)
+    try {
+      const storedGoals = sessionStorage.getItem('visionBoardGoals');
+      
+      if (storedGoals) {
+        const goalsList = JSON.parse(storedGoals);
+        setGoals(goalsList);
+        hasFetchedRef.current = true;
+        // Trigger generation
+        generateVisionBoard(goalsList);
+        return;
+      }
+    } catch (err) {
+      console.warn("Error reading goals from sessionStorage:", err);
+    }
+
+    // Fallback: Get goals from URL params (old flow)
     const params = new URLSearchParams(window.location.search);
     const goalsParam = params.get("goals");
 
@@ -37,15 +83,61 @@ export default function BoardPage() {
 
     try {
       const goalsList = JSON.parse(decodeURIComponent(goalsParam));
-      // Set goals immediately so they can be displayed right away
       setGoals(goalsList);
-      hasFetchedRef.current = true; // Mark as fetched before calling
+      hasFetchedRef.current = true;
       fetchImage(goalsList);
     } catch (err) {
       setError("Invalid goals parameter");
       setLoading(false);
     }
   }, []);
+
+  const generateVisionBoard = async (goalsList: string[]) => {
+    if (hasFetchedRef.current && imageUrl) {
+      return; // Already generated
+    }
+
+    try {
+      console.log("Generating vision board for goals:", goalsList);
+      const email = sessionStorage.getItem('visionBoardEmail') || undefined;
+      
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          goals: goalsList,
+          email: email,
+          useComposition: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate vision board");
+      }
+
+      const data = await response.json();
+      
+      if (data.imageUrl) {
+        // Store completed image
+        sessionStorage.setItem('visionBoardImage', data.imageUrl);
+        setImageUrl(data.imageUrl);
+        setLoading(false);
+        
+        // Clear generation flags
+        sessionStorage.removeItem('visionBoardGoals');
+        sessionStorage.removeItem('visionBoardEmail');
+      } else {
+        throw new Error("No image URL received");
+      }
+    } catch (err: any) {
+      console.error("Error generating vision board:", err);
+      setError(err.message || "Failed to generate vision board. Please try again.");
+      setLoading(false);
+    }
+  };
 
   // Progress bar effect (90 seconds, capped at 99% until image loads)
   useEffect(() => {
