@@ -40,9 +40,9 @@ export default function Home() {
             Add your goals
           </Link>
 
-          {/* Vision Collage - Bleeds out bottom */}
+          {/* Vision Collage - Bleeds out bottom and sides */}
           <div className="w-full flex-1 relative min-h-0 overflow-visible">
-            <div className="absolute inset-x-0 top-0 h-[calc(100%+48px)]">
+            <div className="absolute top-0 inset-x-[-24px] h-[calc(100%+48px)]">
               <img
                 src="/vision-collage-mobile.png"
                 alt="Vision board collage"
