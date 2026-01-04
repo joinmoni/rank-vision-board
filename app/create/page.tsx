@@ -83,7 +83,7 @@ export default function CreatePage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FFF9F3] lg:bg-[#FAF5F0]">
+    <div className="min-h-screen overflow-x-hidden bg-[#FFF7EF]">
       {/* Mobile Layout */}
       <div className="lg:hidden">
         <div className="max-w-[450px] mx-auto px-6 pt-10 pb-12">
@@ -103,13 +103,13 @@ export default function CreatePage() {
 
           {/* Heading */}
           <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-            Type In Your Goal
+            Type In Your Goals
           </h1>
 
           {/* Email Input (Optional) */}
           <div className="mb-6">
             <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-              Email (So we can send you your vision board once it's ready)
+              Your e-mail (So we can send your vision board once it's ready)
             </label>
             <input
               type="email"
@@ -186,56 +186,14 @@ export default function CreatePage() {
             </button>
           </div>
 
-          {/* Vision Grid */}
-          <div className="grid grid-cols-2 gap-3 w-full">
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
-              <img
-                src="/image-1.png"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden row-span-2 aspect-[1/2] shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
-              <img
-                src="/image-2.png"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
-              <img
-                src="/image-3.png"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden col-span-2 aspect-[2/1] shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
-              <img
-                src="/image-4.png"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
-              <img
-                src="/image-5.png"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-2xl overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
-              <img
-                src="/image-6.png"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
+          {/* Vision Collage */}
+          <div className="w-full">
+            <img
+              src="/vision-collage-mobile.png"
+              alt="Vision board collage"
+              className="w-full h-auto object-contain"
+              loading="lazy"
+            />
           </div>
         </div>
       </div>
@@ -244,129 +202,13 @@ export default function CreatePage() {
       <div className="hidden lg:flex flex-row min-h-screen w-full overflow-hidden">
         {/* Left side - Collage */}
         <div className="w-1/2 relative overflow-hidden">
-          <div
-            className="relative w-full h-screen min-h-[800px]"
-            style={{ position: "relative" }}
-          >
-            <div className="vision-circle c-1 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] top-[-50px] left-[-100px] z-[5]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-1.png"
-              />
-            </div>
-            <div className="vision-circle c-2 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[340px] h-[340px] top-[-80px] left-[180px] z-[4]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-2.png"
-              />
-            </div>
-            <div className="vision-circle c-3 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[220px] h-[220px] top-[180px] left-[160px] z-[3]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-3.png"
-              />
-            </div>
-            <div className="vision-circle c-4 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[380px] h-[380px] top-[260px] left-[-120px] z-[6]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-4.png"
-              />
-            </div>
-            <div className="vision-circle c-5 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[420px] h-[420px] top-[280px] left-[220px] z-[2]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-5.png"
-              />
-            </div>
-            <div className="vision-circle c-6 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[280px] h-[280px] top-[540px] left-[100px] z-[7]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-6.png"
-              />
-            </div>
-            <div className="vision-circle c-7 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[520px] h-[520px] top-[620px] left-[320px] z-[1]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover"
-                style={{
-                  position: "absolute",
-                  height: "100%",
-                  width: "100%",
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                src="/image-7.png"
-              />
-            </div>
+          <div className="relative w-full h-screen min-h-[800px] flex items-center justify-center">
+            <img
+              src="/vision-collage.png"
+              alt="Vision board collage"
+              className="w-full h-full object-cover object-center"
+              loading="lazy"
+            />
           </div>
         </div>
 
@@ -387,13 +229,13 @@ export default function CreatePage() {
 
           <div className="max-w-xl w-full">
             <h1 className="text-6xl font-[900] text-[#1A1310] leading-tight mb-8">
-              Type In Your Goal
+              Type In Your Goals
             </h1>
 
                     {/* Email Input (Optional) */}
                     <div className="mb-6">
                       <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                        Email (so we can send you your vision board)
+                        Your e-mail (So we can send your vision board once it's ready)
                       </label>
                       <input
                         type="email"

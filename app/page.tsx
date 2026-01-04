@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import React from "react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FFF9F3] lg:bg-[#FAF5F0]">
+    <div className="min-h-screen overflow-x-hidden bg-[#FFF7EF]">
       {/* Mobile Layout */}
-      <div className="lg:hidden">
-        <div className="max-w-[450px] mx-auto px-6 pt-10 pb-12">
+      <div className="lg:hidden h-screen overflow-y-hidden overflow-x-hidden">
+        <div className="max-w-[450px] mx-auto px-6 pt-10 pb-0 h-full flex flex-col relative">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-6">
             <Link href="/">
@@ -39,53 +40,13 @@ export default function Home() {
             Add your goals
           </Link>
 
-          {/* Vision Grid */}
-          <div className="grid grid-cols-2 gap-3 w-full">
-            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
+          {/* Vision Collage - Bleeds out bottom */}
+          <div className="w-full flex-1 relative min-h-0 overflow-visible">
+            <div className="absolute inset-x-0 top-0 h-[calc(100%+48px)]">
               <img
-                src="/image-1.png"
-                alt=""
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
-              <img
-                src="/image-2.png"
-                alt=""
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
-              <img
-                src="/image-3.png"
-                alt=""
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
-              <img
-                src="/image-4.png"
-                alt=""
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] -rotate-1">
-              <img
-                src="/image-5.png"
-                alt=""
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-            </div>
-            <div className="relative bg-[#E5E5E5] rounded-full overflow-hidden aspect-square shadow-[0_4px_20px_rgba(0,0,0,0.06)] rotate-1">
-              <img
-                src="/image-6.png"
-                alt=""
-                className="w-full h-full object-cover object-center"
+                src="/vision-collage-mobile.png"
+                alt="Vision board collage"
+                className="w-full h-full object-cover"
                 loading="lazy"
               />
             </div>
@@ -95,81 +56,15 @@ export default function Home() {
 
       {/* Desktop Layout */}
       <div className="hidden lg:flex flex-row min-h-screen w-full overflow-hidden">
-        {/* Left side - Circular Collage */}
+        {/* Left side - Collage */}
         <div className="w-1/2 relative overflow-hidden">
-          <div className="relative w-full h-screen min-h-[800px]" style={{ position: 'relative' }}>
-            <div className="vision-circle c-1 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] aspect-square top-[-50px] left-[-100px] z-[5]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-1.png"
-              />
-            </div>
-            <div className="vision-circle c-2 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[340px] h-[340px] aspect-square top-[-80px] left-[180px] z-[4]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-2.png"
-              />
-            </div>
-            <div className="vision-circle c-3 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[220px] h-[220px] aspect-square top-[180px] left-[160px] z-[3]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-3.png"
-              />
-            </div>
-            <div className="vision-circle c-4 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[380px] h-[380px] aspect-square top-[260px] left-[-120px] z-[6]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-4.png"
-              />
-            </div>
-            <div className="vision-circle c-5 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[420px] h-[420px] aspect-square top-[280px] left-[220px] z-[2]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-5.png"
-              />
-            </div>
-            <div className="vision-circle c-6 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[280px] h-[280px] aspect-square top-[540px] left-[100px] z-[7]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-6.png"
-              />
-            </div>
-            <div className="vision-circle c-7 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[520px] h-[520px] aspect-square top-[620px] left-[320px] z-[1]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-7.png"
-              />
-            </div>
-            <div className="vision-circle c-8 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[300px] h-[300px] aspect-square top-[620px] left-[-80px] z-[8]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-1.png"
-              />
-            </div>
-            <div className="vision-circle c-9 absolute rounded-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.08)] w-[400px] h-[400px] aspect-square top-[780px] left-[60px] z-[9]">
-              <img
-                alt=""
-                loading="lazy"
-                className="object-cover object-center w-full h-full"
-                src="/image-2.png"
-              />
-            </div>
+          <div className="relative w-full h-screen min-h-[800px] flex items-center justify-center">
+            <img
+              src="/vision-collage.png"
+              alt="Vision board collage"
+              className="w-full h-full object-cover object-center"
+              loading="lazy"
+            />
           </div>
         </div>
 
