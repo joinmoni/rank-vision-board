@@ -46,7 +46,7 @@ export default function Home() {
               <img
                 src="/vision-collage-mobile.png"
                 alt="Vision board collage"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
                 loading="lazy"
               />
             </div>

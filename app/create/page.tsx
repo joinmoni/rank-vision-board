@@ -186,15 +186,6 @@ export default function CreatePage() {
             </button>
           </div>
 
-          {/* Vision Collage */}
-          <div className="w-full">
-            <img
-              src="/vision-collage-mobile.png"
-              alt="Vision board collage"
-              className="w-full h-auto object-contain"
-              loading="lazy"
-            />
-          </div>
         </div>
       </div>
 
