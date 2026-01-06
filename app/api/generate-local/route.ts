@@ -1,8 +1,8 @@
 /**
  * Local MVP Route - Generates vision board directly in Next.js API route
  * 
- * This route uses the same composition logic as Firebase Functions but runs locally.
- * Use this as a fallback/MVP while debugging Firebase Functions.
+ * This route uses the same composition logic as AWS Lambda but runs locally.
+ * Use this as a fallback/MVP while debugging Lambda Functions.
  * 
  * Returns the image as base64 or uploads to Supabase Storage (configurable).
  */
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     // Return response
     if (imageUrl && jobId) {
-      // Return job-based response (matches Firebase Functions flow)
+      // Return job-based response (matches Lambda Functions flow)
       return NextResponse.json({
         success: true,
         jobId,
@@ -219,5 +219,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 
 

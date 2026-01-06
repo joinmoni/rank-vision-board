@@ -39,7 +39,7 @@ export default function CreatePage() {
     setError(null);
 
     try {
-      // Use local generation if enabled, otherwise use Firebase Functions
+      // Use local generation if enabled, otherwise use AWS Lambda
       const generateRoute = process.env.NEXT_PUBLIC_USE_LOCAL_GENERATION === "true" 
         ? "/api/generate-local" 
         : "/api/generate";

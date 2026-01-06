@@ -20,7 +20,7 @@ export const POST = verifySignatureAppRouter(async (request: NextRequest) => {
     console.log(`Sending email to ${email} for job ${jobId}`);
 
     await resend.emails.send({
-      from: "hello@ukschengenappointments.com",
+      from: "Rank <vision2026@userank.com>",
       to: email,
       subject: "Your 2026 Vision Board is Ready!",
       html: visionBoardCompleteEmail(boardUrl),

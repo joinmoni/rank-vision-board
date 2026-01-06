@@ -69,14 +69,14 @@ CREATE INDEX IF NOT EXISTS idx_vision_board_jobs_created_at ON vision_board_jobs
 ## Status Values
 
 - `pending`: Job created, waiting to be processed
-- `processing`: Job is currently being processed by Firebase Function
+- `processing`: Job is currently being processed by AWS Lambda Function
 - `complete`: Image generation successful, image_url populated
 - `failed`: Image generation failed, error_message populated
 
 ## Usage Notes
 
 1. **Job Creation**: When a user submits goals, create a record with status `'pending'`
-2. **Status Updates**: Firebase Function updates status to `'processing'` → `'complete'` or `'failed'`
+2. **Status Updates**: AWS Lambda Function updates status to `'processing'` → `'complete'` or `'failed'`
 3. **Image Storage**: Store either:
    - Public URL in `image_url` (if using external storage/CDN)
    - Storage path in `image_storage_path` (if using Supabase Storage)
@@ -111,6 +111,7 @@ ORDER BY created_at DESC;
 -- Get job by ID
 SELECT * FROM vision_board_jobs WHERE id = 'job-uuid-here';
 ```
+
 
 
 

@@ -1,8 +1,8 @@
 export const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rank-vision-board.vercel.app";
 
-export const FIREBASE_FUNCTION_URL =
-  process.env.FIREBASE_FUNCTION_URL ||
-  "https://us-central1-uksv-functions.cloudfunctions.net/generateVisionBoardImage";
+export const LAMBDA_FUNCTION_URL =
+  process.env.LAMBDA_FUNCTION_URL ||
+  "https://u3i7fuirmamsk4txqqd3b65uhy0secyh.lambda-url.us-east-1.on.aws/";
 
 // Use local route for MVP (set USE_LOCAL_GENERATION=true to enable)
 export const USE_LOCAL_GENERATION = process.env.USE_LOCAL_GENERATION === "true";

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "@upstash/qstash";
-import { FIREBASE_FUNCTION_URL, APP_URL } from "@/lib/constants";
+import { LAMBDA_FUNCTION_URL, APP_URL } from "@/lib/constants";
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -67,18 +67,16 @@ export async function POST(request: NextRequest) {
 
     const jobId = job.id;
 
-    // Queue job to Firebase Function via QStash
+    // Queue job to AWS Lambda via QStash
     const qstash = getQStashClient();
-    const emailWebhookUrl = `${APP_URL}/api/queues/email`;
 
     try {
       const result = await qstash.publishJSON({
-        url: FIREBASE_FUNCTION_URL,
+        url: LAMBDA_FUNCTION_URL,
         body: {
           jobId,
           goals: validGoals,
           email: email || null,
-          emailWebhookUrl,
         },
       });
 
@@ -97,7 +95,7 @@ export async function POST(request: NextRequest) {
         message: "Vision board generation started",
       });
     } catch (qstashError: any) {
-      console.error("Error queueing job to Firebase Function:", qstashError);
+      console.error("Error queueing job to Lambda Function:", qstashError);
       
       // Update job status to failed
       await supabase
