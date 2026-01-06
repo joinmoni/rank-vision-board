@@ -9,8 +9,18 @@ export default function CreatePage() {
   const router = useRouter();
   const [goals, setGoals] = useState<string[]>(["", ""]);
   const [email, setEmail] = useState<string>("");
+  const [emailTouched, setEmailTouched] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isValidEmail = (value: string) => {
+    if (!value) return true; // optional - empty is allowed
+    // Simple, robust email check (avoid overly strict RFC patterns)
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  };
+  const emailProvided = email.trim() !== "";
+  const emailValid = isValidEmail(email);
+  const showEmailError = emailTouched && emailProvided && !emailValid;
 
   const addGoal = () => {
     setGoals([...goals, ""]);
@@ -24,9 +34,15 @@ export default function CreatePage() {
 
   // Check if first 2 goals are filled
   const canGenerate = goals[0]?.trim() !== "" && goals[1]?.trim() !== "";
+  const canSubmit = canGenerate && (emailValid || !emailProvided) && !isGenerating;
 
   const handleGenerate = async () => {
     if (!canGenerate || isGenerating) return;
+    if (emailProvided && !emailValid) {
+      setEmailTouched(true);
+      setError("Please enter a valid email address.");
+      return;
+    }
 
     const validGoals = goals.filter((goal) => goal.trim() !== "");
     
@@ -113,11 +129,20 @@ export default function CreatePage() {
             </label>
             <input
               type="email"
+              inputMode="email"
+              autoComplete="email"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#F97316] outline-none transition-all placeholder:text-gray-300"
+              onBlur={() => setEmailTouched(true)}
+              aria-invalid={showEmailError ? "true" : "false"}
+              className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all placeholder:text-gray-300 ${
+                showEmailError ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-[#F97316]"
+              }`}
             />
+            {showEmailError && (
+              <p className="mt-2 text-sm text-red-600">Please enter a valid email address.</p>
+            )}
           </div>
 
           {/* Error Message */}
@@ -175,9 +200,9 @@ export default function CreatePage() {
             </button>
             <button
               onClick={handleGenerate}
-              disabled={!canGenerate || isGenerating}
+              disabled={!canSubmit}
               className={`w-full py-[18px] rounded-[14px] text-[18px] font-bold transition-transform ${
-                canGenerate && !isGenerating
+                canSubmit
                   ? "bg-[#F97316] text-white cursor-pointer active:scale-[0.98]"
                   : "bg-[#FFD6B0] text-white cursor-not-allowed"
               }`}
@@ -230,11 +255,20 @@ export default function CreatePage() {
                       </label>
                       <input
                         type="email"
+                    inputMode="email"
+                    autoComplete="email"
                         placeholder="your@email.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#FF7A00] outline-none transition-all placeholder:text-gray-300"
+                    onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => setEmailTouched(true)}
+                    aria-invalid={showEmailError ? "true" : "false"}
+                    className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all placeholder:text-gray-300 ${
+                      showEmailError ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-[#FF7A00]"
+                    }`}
                       />
+                  {showEmailError && (
+                    <p className="mt-2 text-sm text-red-600">Please enter a valid email address.</p>
+                  )}
                     </div>
 
             {/* Error Message */}
@@ -290,9 +324,9 @@ export default function CreatePage() {
               </button>
               <button
                 onClick={handleGenerate}
-                disabled={!canGenerate || isGenerating}
+                disabled={!canSubmit}
                 className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg transition-all ${
-                  canGenerate && !isGenerating
+                  canSubmit
                     ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white cursor-pointer active:scale-95"
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
                 }`}
