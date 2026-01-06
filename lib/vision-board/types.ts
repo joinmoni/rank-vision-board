@@ -42,6 +42,7 @@ export type ImageAsset = {
 export type TextBlock = {
   text: string;
   tone: "soft" | "bold";
+  role?: "primary" | "secondary"; // primary = Playfair Display, secondary = Inter
 };
 
 export type UserGoals = {

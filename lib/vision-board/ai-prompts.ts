@@ -49,13 +49,21 @@ export async function generateImageSearchQueries(
         }
       }
       
-      // Generate 3 queries per goal in fallback
+      // Generate 4 queries per goal in fallback (all with diversity terms)
       fallbackQueries.push({
         query: `black woman ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
         orientation: "landscape" as const,
       });
       fallbackQueries.push({
         query: `woman of color ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "portrait" as const,
+      });
+      fallbackQueries.push({
+        query: `person of color ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "landscape" as const,
+      });
+      fallbackQueries.push({
+        query: `black people ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
         orientation: "portrait" as const,
       });
       fallbackQueries.push({
@@ -121,11 +129,12 @@ C) BAN GENERIC LIFESTYLE QUERIES
   - If you use "cafe" for Paris, it MUST be:
     "Paris cafe exterior signage Paris France" (or include Eiffel/Seine/Louvre/Montmartre/Metro)
 
-D) PEOPLE OF COLOR PREFERENCE (WHEN PEOPLE APPEAR)
-- For queries that include people, prefer:
-  "black woman", "woman of color", "diverse friends", "black couple", "people of color"
-- Do NOT force POC descriptors on pure landmark shots.
-- At least 3 of the 6 queries per goal should include a POC descriptor IF the query includes people.
+D) DIVERSITY REQUIREMENT (MANDATORY FOR ALL PEOPLE QUERIES)
+- ALL queries that include people MUST include diversity descriptors:
+  "black woman", "black man", "woman of color", "person of color", "diverse friends", "black couple", "people of color", "African American", "BIPOC"
+- This is MANDATORY - every query with people must explicitly include these terms.
+- Do NOT force POC descriptors on pure landmark shots (no people).
+- When people appear in the query, ALWAYS include diversity terms - this ensures representation of black people and people of color in all vision board images.
 
 E) QUERY SHAPE
 - 5–12 words.
@@ -163,7 +172,7 @@ Return ONLY JSON.`;
         {
           role: "system",
           content:
-            "You generate goal-specific, high-signal Pexels search queries. Each goal gets its own queries array (5-7 queries). Include visual anchors (landmarks, stage/crowd). Prefer people of color when people appear. Label queries as must_have (core imagery) or nice_to_have (supporting context). Return valid JSON with 'goals' array and 'globalNegatives' array.",
+            "You generate goal-specific, high-signal Pexels search queries. Each goal gets its own queries array (5-7 queries). Include visual anchors (landmarks, stage/crowd). MANDATORY: ALL queries that include people MUST include diversity descriptors like 'black woman', 'person of color', 'people of color', 'BIPOC' to ensure representation. Label queries as must_have (core imagery) or nice_to_have (supporting context). Return valid JSON with 'goals' array and 'globalNegatives' array.",
         },
         {
           role: "user",
@@ -302,7 +311,7 @@ Return ONLY JSON.`;
         }
       }
       
-      // Generate 3 queries per goal in fallback (with goal metadata)
+      // Generate 4 queries per goal in fallback (with goal metadata, all with diversity terms)
       fallbackQueries.push({
         query: `black woman ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
         orientation: "landscape" as const,
@@ -311,6 +320,18 @@ Return ONLY JSON.`;
       });
       fallbackQueries.push({
         query: `woman of color ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "portrait" as const,
+        goalIndex,
+        goalText: goal,
+      });
+      fallbackQueries.push({
+        query: `person of color ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
+        orientation: "landscape" as const,
+        goalIndex,
+        goalText: goal,
+      });
+      fallbackQueries.push({
+        query: `black people ${cleanedGoal}${locationToken ? ` ${locationToken}` : ""}`,
         orientation: "portrait" as const,
         goalIndex,
         goalText: goal,
@@ -394,14 +415,26 @@ Output format (JSON object with "texts" array):
   "texts": [
     {
       "text": "God guides my steps",
-      "tone": "soft"
+      "tone": "soft",
+      "role": "primary"
     },
     {
       "text": "Everything I want, wants me more",
-      "tone": "bold"
+      "tone": "bold",
+      "role": "primary"
+    },
+    {
+      "text": "Time is not refundable",
+      "tone": "soft",
+      "role": "secondary"
     }
   ]
 }
+
+ROLE ASSIGNMENT:
+- "primary" (default): Main affirmations, emotional statements, short declarative phrases → Use Playfair Display font
+- "secondary": Supporting text, longer explanatory phrases, grounding statements → Use Inter font
+- If role is missing, default to "primary"
 
 Do NOT explain.
 Return ONLY valid JSON, no markdown, no explanation.`;
@@ -413,7 +446,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
         {
           role: "system",
           content:
-            "You write short affirmations that feel like Instagram captions or journal entries - bold, declarative, emotionally grounded. Always return valid JSON objects with a 'texts' array.",
+            "You write short affirmations that feel like Instagram captions or journal entries - bold, declarative, emotionally grounded. Assign 'role' to each text: 'primary' for main affirmations/emotional statements (uses Playfair Display font), 'secondary' for supporting/grounding text (uses Inter font). Default to 'primary' if role is missing. Always return valid JSON objects with a 'texts' array.",
         },
         {
           role: "user",
@@ -458,16 +491,17 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       .map((t) => ({
         text: t.text || String(t),
         tone: t.tone === "soft" || t.tone === "bold" ? t.tone : "soft",
+        role: t.role === "primary" || t.role === "secondary" ? t.role : "primary", // default to primary
       }));
   } catch (error: any) {
     console.error("⚠️  [AI-PROMPTS] Error generating motivational text, using fallback:", error);
     // Fallback: generic affirmations (scrapbook style)
     const fallbackTexts = [
-      { text: "Everything I want, wants me more", tone: "bold" as const },
-      { text: "God guides my steps", tone: "soft" as const },
-      { text: "I'm living in my answered prayers", tone: "bold" as const },
-      { text: "Time is not refundable, use it with intention", tone: "soft" as const },
-      { text: "Make yours a priority", tone: "bold" as const },
+      { text: "Everything I want, wants me more", tone: "bold" as const, role: "primary" as const },
+      { text: "God guides my steps", tone: "soft" as const, role: "primary" as const },
+      { text: "I'm living in my answered prayers", tone: "bold" as const, role: "primary" as const },
+      { text: "Time is not refundable, use it with intention", tone: "soft" as const, role: "secondary" as const },
+      { text: "Make yours a priority", tone: "bold" as const, role: "primary" as const },
     ];
     console.log("📝 [AI-PROMPTS] Fallback texts:", fallbackTexts);
     return fallbackTexts;

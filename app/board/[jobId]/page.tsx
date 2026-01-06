@@ -318,7 +318,7 @@ export default function BoardPageByJobId() {
                 <button
                   onClick={handleDownload}
                   disabled={loading || !imageUrl}
-                  className="w-full py-[18px] rounded-[14px] text-[18px] font-bold flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white transition-transform active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="hidden w-full py-[18px] rounded-[14px] text-[18px] font-bold items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white transition-transform active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Download Board
                   <svg
@@ -462,7 +462,7 @@ export default function BoardPageByJobId() {
                   <button
                     onClick={handleDownload}
                     disabled={loading || !imageUrl}
-                    className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="hidden lg:flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Download Board
                     <svg

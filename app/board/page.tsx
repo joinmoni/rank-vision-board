@@ -226,7 +226,7 @@ export default function BoardPage() {
                   </button>
                   <button
                     onClick={handleDownload}
-                    className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg"
+                    className="hidden lg:flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg"
                   >
                     Download Board
                     <svg
