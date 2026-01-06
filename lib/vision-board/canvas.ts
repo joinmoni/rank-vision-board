@@ -351,7 +351,7 @@ async function prepareTextComposites(
   const safeMargin = 32; // 32px minimum margin from edges
   const minFontSize = 30; // Hard minimum font size
   const baseFontSize = 44; // Base font size
-  const paddingExact = 8; // Minimum 8px padding on all sides (top, bottom, left, right)
+  const paddingExact = 16; // Minimum 16px padding on all sides (top, bottom, left, right)
   const rotationPadding = 0.2; // 20% padding for rotation
 
   // Load Dazzed font using opentype.js
@@ -430,7 +430,7 @@ async function prepareTextComposites(
     let finalCardHeight: number;
     
     if (isShort) {
-      // SHORT TEXT: One line, hugged box, 5px padding
+      // SHORT TEXT: One line, hugged box, 16px padding
       lines = [displayText];
       finalFontSize = baseFontSize; // Start with 44px
       
@@ -457,8 +457,8 @@ async function prepareTextComposites(
       finalCardHeight = Math.ceil(textHeight) + (paddingExact * 2);
       finalCardHeight = Math.max(finalCardHeight, minH);
     } else {
-      // LONG TEXT: Narrow width (260-420px), wrap by pixel, grow height
-      finalCardWidth = 260 + Math.floor(Math.random() * 160); // 260-420px
+      // LONG TEXT: Narrow width (300-480px), wrap by pixel, grow height
+      finalCardWidth = 300 + Math.floor(Math.random() * 180); // 300-480px
       finalFontSize = baseFontSize;
       
       // Wrap text by pixel width using opentype.js

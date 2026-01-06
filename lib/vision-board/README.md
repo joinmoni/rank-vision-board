@@ -139,3 +139,4 @@ No changes needed to layout or canvas code!
 
 The original OpenAI image generation route (`/api/ai`) is preserved and can still be used independently. The composition system is opt-in via the `useComposition` flag.
 
+

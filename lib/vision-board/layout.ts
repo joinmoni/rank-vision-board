@@ -302,10 +302,10 @@ function generateHardTemplateLayout(
   
   // Text box sizes (as percentage of canvas width)
   const textSizes = [
-    { width: 0.22 + Math.random() * 0.04 }, // 22-26% width (small)
-    { width: 0.28 + Math.random() * 0.06 }, // 28-34% width (medium)
-    { width: 0.36 + Math.random() * 0.08 }, // 36-44% width (large)
-    { width: 0.28 + Math.random() * 0.06 }, // 28-34% width (medium)
+    { width: 0.24 + Math.random() * 0.06 }, // 24-30% width (small)
+    { width: 0.30 + Math.random() * 0.08 }, // 30-38% width (medium)
+    { width: 0.38 + Math.random() * 0.10 }, // 38-48% width (large)
+    { width: 0.30 + Math.random() * 0.08 }, // 30-38% width (medium)
   ];
   
   for (let i = 0; i < 4; i++) {

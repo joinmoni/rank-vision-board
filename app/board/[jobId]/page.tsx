@@ -215,7 +215,7 @@ export default function BoardPageByJobId() {
           {/* Heading (during loading) */}
           {loading && (
             <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-              Creating your 2026 Vision Board....
+              Creating your 2026 Vision Board...
             </h1>
           )}
 
@@ -374,7 +374,7 @@ export default function BoardPageByJobId() {
               {/* Left side: Text */}
               <div className="w-1/2 flex flex-col pr-8">
                 <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-                  Creating your 2026 Vision Board....
+                  Creating your 2026 Vision Board...
                 </h1>
                 {jobStatus === "pending" && (
                   <p className="text-[18px] text-[#4A3F35] mb-8">
