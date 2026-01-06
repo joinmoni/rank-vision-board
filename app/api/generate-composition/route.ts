@@ -8,8 +8,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
+import { Resend } from "resend";
 import { PexelsProvider } from "@/lib/vision-board/image-provider";
 import { composeVisionBoardFromGoals } from "@/lib/vision-board/orchestrator";
+import { visionBoardCompleteEmail } from "@/lib/email-template";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
@@ -145,30 +147,24 @@ export async function POST(request: NextRequest) {
 
       console.log(`Vision board generation completed for job ${jobId}`);
 
-      // Trigger email notification if email provided
+      // Send email directly if email provided
       if (email) {
         try {
           const boardUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://rank-vision-board.vercel.app"}/board/${jobId}`;
-          const emailQueueUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://rank-vision-board.vercel.app"}/api/queues/email`;
+          const resend = new Resend(process.env.RESEND_API_KEY);
           
-          const webhookResponse = await fetch(emailQueueUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              jobId,
-              email,
-              boardUrl,
-            }),
+          await resend.emails.send({
+            from: "Rank <vision2026@userank.com>",
+            to: email,
+            subject: "Your 2026 Vision Board is Ready!",
+            html: visionBoardCompleteEmail(boardUrl),
+            text: `Hi there! Your vision board is ready. View it here: ${boardUrl}`,
           });
 
-          if (!webhookResponse.ok) {
-            console.warn(`Email queue webhook returned ${webhookResponse.status}`);
-          }
-        } catch (webhookError) {
-          console.error("Failed to trigger email queue webhook:", webhookError);
-          // Don't fail the whole job if email webhook fails
+          console.log(`Vision board completion email sent successfully to ${email}`);
+        } catch (emailError) {
+          console.error("Failed to send vision board completion email:", emailError);
+          // Don't fail the whole job if email fails
         }
       }
 
