@@ -22,7 +22,12 @@ export default function CreatePage() {
   const emailValid = isValidEmail(email);
   const showEmailError = emailTouched && emailProvided && !emailValid;
 
+  const MAX_GOALS = 7;
+  
   const addGoal = () => {
+    if (goals.length >= MAX_GOALS) {
+      return; // Don't add if already at max
+    }
     setGoals([...goals, ""]);
   };
 
@@ -35,6 +40,7 @@ export default function CreatePage() {
   // Check if first 2 goals are filled
   const canGenerate = goals[0]?.trim() !== "" && goals[1]?.trim() !== "";
   const canSubmit = canGenerate && (emailValid || !emailProvided) && !isGenerating;
+  const canAddGoal = goals.length < MAX_GOALS && canGenerate; // Can only add if under max and first 2 are filled
 
   const handleGenerate = async () => {
     if (!canGenerate || isGenerating) return;
@@ -55,12 +61,8 @@ export default function CreatePage() {
     setError(null);
 
     try {
-      // Use local generation if enabled, otherwise use AWS Lambda
-      const generateRoute = process.env.NEXT_PUBLIC_USE_LOCAL_GENERATION === "true" 
-        ? "/api/generate-local" 
-        : "/api/generate";
-      
-      const response = await fetch(generateRoute, {
+      // Use Lambda for server-side generation (production)
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -180,17 +182,18 @@ export default function CreatePage() {
           <div className="flex flex-col gap-4 mb-12">
             <button
               onClick={addGoal}
-              disabled={!canGenerate}
+              disabled={!canAddGoal}
               className={`w-full py-[18px] rounded-[14px] text-[18px] font-bold flex items-center justify-center gap-2 transition-transform ${
-                canGenerate
+                canAddGoal
                   ? "bg-[#F97316] text-white active:scale-[0.98]"
                   : "bg-[#FFD6B0] text-white cursor-not-allowed"
               }`}
+              title={goals.length >= MAX_GOALS ? `Maximum ${MAX_GOALS} goals allowed` : "Add another goal"}
             >
-              Add Goal
+              Add Goal {goals.length >= MAX_GOALS ? `(Max ${MAX_GOALS})` : ""}
               <span
                 className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
-                  canGenerate
+                  canAddGoal
                     ? "bg-white text-[#F97316]"
                     : "bg-white/50 text-[#F97316]/50"
                 }`}
@@ -304,17 +307,18 @@ export default function CreatePage() {
             <div className="flex flex-row gap-4">
               <button
                 onClick={addGoal}
-                disabled={!canGenerate}
+                disabled={!canAddGoal}
                 className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
-                  canGenerate
+                  canAddGoal
                     ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white active:scale-95"
                     : "bg-[#FFD6B0] text-white cursor-not-allowed"
                 }`}
+                title={goals.length >= MAX_GOALS ? `Maximum ${MAX_GOALS} goals allowed` : "Add another goal"}
               >
-                Add Goal
+                Add Goal {goals.length >= MAX_GOALS ? `(Max ${MAX_GOALS})` : ""}
                 <span
                   className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
-                    canGenerate
+                    canAddGoal
                       ? "bg-white text-[#FF7A00]"
                       : "bg-white/50 text-[#FF7A00]/50"
                   }`}
