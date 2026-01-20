@@ -10,6 +10,7 @@ export default function BoardPageByJobId() {
   const jobId = params?.jobId as string;
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [goals, setGoals] = useState<string[]>([]);
+  const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -36,6 +37,7 @@ export default function BoardPageByJobId() {
         const data = await response.json();
         setJobStatus(data.status);
         setGoals(data.goals || []);
+        setName(data.name || "");
 
         if (data.status === "complete" && data.imageUrl) {
           setImageUrl(data.imageUrl);
@@ -193,322 +195,256 @@ export default function BoardPageByJobId() {
 
   // Copy the rest of the JSX from the original board/page.tsx
   // For brevity, I'll include the key parts
+  // Calculate stroke-dashoffset for circular progress
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius; // ~440
+  const strokeDashoffset = circumference - (circumference * progress / 100);
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FFF9F3] lg:bg-[#FAF5F0]">
-      {/* Mobile Layout */}
-      <div className="lg:hidden">
-        <div className="max-w-[450px] mx-auto px-6 pt-10 pb-12">
-          {/* Logo */}
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/">
-              <Image
-                src="/rank-logo.svg"
-                alt="Rank Logo"
-                width={120}
-                height={35}
-                priority
-                className="h-[22px] w-auto"
-              />
-            </Link>
+    <div className="min-h-screen bg-white text-black overflow-hidden relative">
+      {loading ? (
+        <div className="flex flex-col lg:flex-row min-h-screen">
+          {/* Left side - Text (Maroon background - Desktop only) */}
+          <div className="hidden lg:flex lg:w-1/2 bg-[#3E0000] flex-col justify-center px-8 md:px-16 lg:px-24 py-12 relative">
+            {/* White Logo overlay on maroon background (Desktop only) */}
+            <div className="absolute top-8 left-8 z-10">
+              <Link href="/">
+                <Image
+                  src="/rank-logo-white.svg"
+                  alt="Rank Logo"
+                  width={120}
+                  height={35}
+                  priority
+                  className="h-6 w-auto"
+                />
+              </Link>
+            </div>
+            <h1 className="text-white text-5xl md:text-7xl font-extrabold tracking-tighter leading-tight mb-8">
+              Creating your<br />2026 vision board...
+            </h1>
+            <p className="text-white/80 text-lg md:text-xl max-w-md leading-relaxed">
+              Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
+            </p>
           </div>
 
-          {/* Heading (during loading) */}
-          {loading && (
-            <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-              Creating your 2026 Vision Board...
-            </h1>
-          )}
-
-          {/* Loading State */}
-          {loading && (
-            <div className="w-full flex justify-center mb-8">
-              <div className="w-full aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
-                <p className="text-gray-500 font-medium text-center mb-6">
-                  Our design intern is cooking up your vision board.<br />
-                  Give her a minute..
-                </p>
-                <div className="w-full max-w-[300px]">
-                  <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-[#F97316] h-full rounded-full transition-all duration-100 ease-linear"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="text-gray-400 text-sm text-center mt-2">
-                    {Math.round(progress)}%
-                  </p>
-                </div>
-                {jobStatus === "pending" && (
-                  <p className="text-sm text-gray-600 mt-4 text-center">
-                    Your job has been created. We'll email you when it's ready!
-                  </p>
-                )}
-                {jobStatus === "processing" && (
-                  <p className="text-xs text-gray-500 mt-4 text-center max-w-[280px] mx-auto">
-                    Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <div className="w-full flex justify-center mb-8">
-              <div className="w-full aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
-                <p className="text-red-500 font-medium text-center px-4">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Heading */}
-          {!loading && (
-            <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-              Your 2026 Vision Board Is Complete
-            </h1>
-          )}
-
-          {/* Description */}
-          {!loading && (
-            <p className="text-[18px] text-[#4A3F35] mb-8">
-              Take a moment to pause, reflect, and see your goals come to life.
-            </p>
-          )}
-
-          {/* Image Display */}
-          {imageUrl && !loading && (
-            <>
-              <div className="mb-8 w-full flex justify-center">
-                <div
-                  ref={collageRef}
-                  className="w-full aspect-[1654/2339] bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
-                >
-                  <img
-                    src={imageUrl}
-                    alt="Vision Board"
-                    className="w-full h-full object-cover"
+          {/* Right side - Circular Progress Loader (Full width on mobile) */}
+          <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16">
+            <div className="w-full max-w-lg aspect-square border border-orange-100 rounded-[60px] flex flex-col items-center justify-center p-12 text-center">
+              <div className="relative flex items-center justify-center mb-8">
+                <svg className="w-32 h-32 md:w-40 md:h-40">
+                  <circle
+                    className="text-gray-100"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx="80"
+                    cy="80"
                   />
-                </div>
+                  <circle
+                    className="text-[#3E0000] progress-ring__circle"
+                    strokeWidth="4"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx="80"
+                    cy="80"
+                    style={{
+                      transition: "stroke-dashoffset 0.35s",
+                      transform: "rotate(-90deg)",
+                      transformOrigin: "50% 50%",
+                    }}
+                  />
+                </svg>
+                <span className="absolute text-3xl md:text-4xl font-black text-[#3E0000]">
+                  {Math.round(progress)}%
+                </span>
               </div>
+              <p className="text-xl md:text-2xl font-medium text-gray-800 leading-snug max-w-xs">
+                Our design intern is cooking up your vision board. Give her a minute.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-screen bg-white text-black overflow-hidden">
+          {/* Mobile Layout */}
+          <div className="lg:hidden">
+            <div className="px-6 pt-6 pb-8">
+              {/* Logo */}
+              <div className="mb-8">
+                <Link href="/" className="flex items-center gap-2">
+                  <Image
+                    src="/rank-logo-black.svg"
+                    alt="Rank Logo"
+                    width={120}
+                    height={35}
+                    priority
+                    className="h-6 w-auto"
+                  />
+                </Link>
+              </div>
+
+              {/* Heading */}
+              <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tighter leading-[0.95] mb-4 text-black">
+                Your 2026 vision board is complete
+              </h1>
+
+              {/* Description */}
+              <p className="text-lg mb-8 text-gray-700 leading-snug">
+                Take a moment to pause, reflect, and see your goals come to life.
+              </p>
+
+              {/* Image Section (White background on mobile) */}
+              {imageUrl ? (
+                <div className="relative bg-white rounded-2xl p-6 mb-6 min-h-[500px] flex flex-col border border-gray-200">
+                  {/* Greeting */}
+                  <h2 className="text-black text-2xl font-bold mb-4">
+                    Hi {name || "there"}
+                  </h2>
+
+                  {/* Vision Board Image Card */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="w-full max-w-sm bg-white rounded-lg p-3 border border-gray-200 shadow-lg">
+                      <img
+                        src={imageUrl}
+                        alt="Vision Board"
+                        className="w-full h-auto rounded-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Rank Logo at bottom right */}
+                  <div className="flex justify-end items-center gap-2 mt-4">
+                    <Image
+                      src="/rank-icon.svg"
+                      alt="Rank"
+                      width={20}
+                      height={20}
+                      className="w-5 h-5"
+                    />
+                    <span className="text-black text-xl font-extrabold tracking-tighter">Rank</span>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="bg-white border border-red-200 rounded-2xl p-6 mb-6 min-h-[300px] flex items-center justify-center">
+                  <p className="text-red-700 text-center">{error}</p>
+                </div>
+              ) : null}
 
               {/* Buttons */}
-              <div className="flex flex-col gap-4 mt-8">
-                <button
-                  onClick={handleShare}
-                  disabled={loading || !imageUrl}
-                  className="w-full py-[18px] rounded-[14px] text-[18px] font-bold flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white transition-transform active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Share Board
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+              {imageUrl && (
+                <div className="flex flex-row gap-4 mb-6">
+                  <button
+                    onClick={handleShare}
+                    disabled={!imageUrl}
+                    className="flex-1 px-6 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={handleDownload}
-                  disabled={loading || !imageUrl}
-                  className="hidden w-full py-[18px] rounded-[14px] text-[18px] font-bold items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white transition-transform active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Download Board
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    Share board
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    disabled={!imageUrl}
+                    className="flex-1 px-6 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                </button>
-              </div>
+                    Download board
+                  </button>
+                </div>
+              )}
 
               {/* Create New Link */}
               <Link
                 href="/create"
-                className="text-[#F97316] hover:text-[#E66D00] font-medium text-lg transition-colors underline underline-offset-4 text-center block mt-8"
+                className="text-black font-bold underline underline-offset-4 decoration-2 hover:text-gray-700 inline-block"
               >
                 Create a new vision board
               </Link>
-            </>
-          )}
-
-        </div>
-      </div>
-
-      {/* Desktop Layout - similar structure */}
-      <div className="hidden lg:flex flex-col min-h-screen">
-        <div className="max-w-7xl mx-auto w-full px-12 py-12">
-          {/* Logo */}
-          <div className="flex items-center gap-2 mb-10">
-            <Link href="/">
-              <Image
-                src="/rank-logo.svg"
-                alt="Rank Logo"
-                width={120}
-                height={35}
-                priority
-                className="h-8 w-auto"
-              />
-            </Link>
+            </div>
           </div>
 
-          {/* Loading State - 2 Column Layout */}
-          {loading && (
-            <div className="flex flex-row gap-12 items-center min-h-[600px]">
-              {/* Left side: Text */}
-              <div className="w-1/2 flex flex-col pr-8">
-                <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-                  Creating your 2026 Vision Board...
-                </h1>
-                {jobStatus === "pending" && (
-                  <p className="text-[18px] text-[#4A3F35] mb-8">
-                    Your job has been created. We'll email you when it's ready!
-                  </p>
-                )}
-                {jobStatus === "processing" && (
-                  <p className="text-base text-gray-500">
-                    Feel free to navigate away from this page. We'll notify you via email when it's ready, or you can come back to this page later.
-                  </p>
-                )}
-              </div>
-
-              {/* Right side: Loading Indicator */}
-              <div className="w-1/2 flex justify-end">
-                <div className="w-full max-w-2xl aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center p-8">
-                  <p className="text-gray-500 font-medium text-center mb-6">
-                    Our design intern is cooking up your vision board.<br />
-                    Give her a minute..
-                  </p>
-                  <div className="w-full max-w-[300px]">
-                    <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="bg-[#F97316] h-full rounded-full transition-all duration-100 ease-linear"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="text-gray-400 text-sm text-center mt-2">
-                      {Math.round(progress)}%
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <div className="w-full flex justify-center mb-8">
-              <div className="w-full max-w-2xl aspect-[1654/2339] bg-gray-200 rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center">
-                <p className="text-red-500 font-medium text-center px-4">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Content: Text/Buttons on left, Image on right */}
-          {!loading && imageUrl && (
-            <div className="flex flex-row gap-12 items-center min-h-[600px]">
-              {/* Left side: Text and Buttons */}
-              <div className="w-1/2 flex flex-col pr-8">
-                {/* Heading */}
-                <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-                  Your 2026 Vision Board Is Complete
-                </h1>
-
-                {/* Description */}
-                <p className="text-[18px] text-[#4A3F35] mb-8">
-                  Take a moment to pause, reflect, and see your goals come to life.
-                </p>
-
-                {/* Buttons */}
-                <div className="flex flex-row gap-4">
-                  <button
-                    onClick={handleShare}
-                    disabled={loading || !imageUrl}
-                    className="flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Share Board
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
-                  </button>
-
-                  <button
-                    onClick={handleDownload}
-                    disabled={loading || !imageUrl}
-                    className="hidden lg:flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E66D00] text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Download Board
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Create New Link */}
-                <Link
-                  href="/create"
-                  className="text-[#FF7A00] hover:text-[#E66D00] font-medium text-lg transition-colors underline underline-offset-4 mt-8"
-                >
-                  Create a new vision board
+          {/* Desktop Layout */}
+          <div className="hidden lg:flex flex-row min-h-screen">
+            {/* Left side - Maroon background with text and buttons */}
+            <div className="w-1/2 bg-[#3E0000] flex flex-col justify-center px-16 lg:px-24 py-12 relative">
+              {/* White Logo overlay on maroon background (Desktop only) */}
+              <div className="absolute top-8 left-8 z-10">
+                <Link href="/">
+                  <Image
+                    src="/rank-logo-white.svg"
+                    alt="Rank Logo"
+                    width={120}
+                    height={35}
+                    priority
+                    className="h-6 w-auto"
+                  />
                 </Link>
               </div>
+              <h1 className="text-white text-5xl md:text-7xl font-extrabold tracking-tighter leading-[1.1] mb-6">
+                Your 2026 vision board is complete
+              </h1>
+              <p className="text-white/80 text-lg md:text-xl max-w-sm mb-12 leading-snug">
+                Take a moment to pause, reflect, and see your goals come to life.
+              </p>
 
-              {/* Right side: Image */}
-              <div className="w-1/2 flex justify-end">
-                <div
-                  ref={collageRef}
-                  className="w-full max-w-full aspect-[1654/2339] bg-white rounded-2xl border-[12px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden relative board-result"
-                >
+              {/* Error State */}
+              {error && (
+                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* Buttons */}
+              {imageUrl && (
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                  <button
+                    onClick={handleShare}
+                    disabled={!imageUrl}
+                    className="px-10 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Share board
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    disabled={!imageUrl}
+                    className="px-10 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Download board
+                  </button>
+                </div>
+              )}
+
+              {/* Create New Link */}
+              <Link
+                href="/create"
+                className="text-white font-bold underline underline-offset-4 decoration-2 hover:text-gray-300"
+              >
+                Create a new vision board
+              </Link>
+            </div>
+
+            {/* Right side - Vision Board Display */}
+            <div className="w-1/2 flex items-center justify-center p-12 lg:p-20">
+              {imageUrl ? (
+                <div className="w-full max-w-2xl shadow-2xl rounded-lg overflow-hidden">
+                  {/* Vision Board Image - All content (title, background, polaroids, logo) rendered by Lambda */}
                   <img
                     src={imageUrl}
                     alt="Vision Board"
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto object-contain"
                   />
                 </div>
-              </div>
+              ) : error ? (
+                <div className="w-full max-w-2xl bg-white border border-red-200 shadow-2xl p-8 md:p-12 flex items-center justify-center rounded-lg">
+                  <p className="text-red-700 text-center">{error}</p>
+                </div>
+              ) : null}
             </div>
-          )}
-
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

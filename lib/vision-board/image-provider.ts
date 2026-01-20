@@ -285,6 +285,7 @@ export class PexelsProvider implements ImageProvider {
         goalText,
         relevanceScore: item.relevanceScore,
         matchedQuery: searchQuery.query,
+        alt: photo.alt, // Store alt text for OpenAI ranking
       });
     }
 

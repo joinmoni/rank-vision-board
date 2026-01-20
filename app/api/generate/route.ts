@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "@upstash/qstash";
-import { LAMBDA_FUNCTION_URL, APP_URL } from "@/lib/constants";
+import { LAMBDA_FUNCTION_URL, APP_URL, USE_DIRECT_LAMBDA_CALL } from "@/lib/constants";
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,7 +25,7 @@ function getQStashClient() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { goals, email } = body;
+    const { goals, email, name, gender } = body;
 
     if (!goals || !Array.isArray(goals) || goals.length === 0) {
       return NextResponse.json(
@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       .from("vision_board_jobs")
       .insert({
         email: email || null,
+        name: name || null,
         goals: validGoals,
         status: "pending",
       })
@@ -67,7 +68,65 @@ export async function POST(request: NextRequest) {
 
     const jobId = job.id;
 
-    // Queue job to AWS Lambda via QStash
+    // For local testing: call Lambda directly (bypass QStash)
+    if (USE_DIRECT_LAMBDA_CALL) {
+      console.log("🔧 [LOCAL TEST] Calling Lambda directly (bypassing QStash)...");
+      try {
+        const lambdaResponse = await fetch(LAMBDA_FUNCTION_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            jobId,
+            goals: validGoals,
+            email: email || null,
+            name: name || null,
+            gender: gender || null,
+          }),
+        });
+
+        if (!lambdaResponse.ok) {
+          const errorText = await lambdaResponse.text();
+          throw new Error(`Lambda returned ${lambdaResponse.status}: ${errorText}`);
+        }
+
+        // Update job status to processing
+        await supabase
+          .from("vision_board_jobs")
+          .update({
+            status: "processing",
+          })
+          .eq("id", jobId);
+
+        return NextResponse.json({
+          success: true,
+          jobId,
+          message: "Vision board generation started (direct Lambda call)",
+        });
+      } catch (lambdaError: any) {
+        console.error("Error calling Lambda directly:", lambdaError);
+        
+        // Update job status to failed
+        await supabase
+          .from("vision_board_jobs")
+          .update({
+            status: "failed",
+            error_message: lambdaError.message || "Failed to call Lambda",
+          })
+          .eq("id", jobId);
+
+        return NextResponse.json(
+          {
+            error: "Failed to call Lambda",
+            details: lambdaError.message || "Unknown error",
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Production: Queue job to AWS Lambda via QStash
     const qstash = getQStashClient();
 
     try {
@@ -77,6 +136,8 @@ export async function POST(request: NextRequest) {
           jobId,
           goals: validGoals,
           email: email || null,
+          name: name || null,
+          gender: gender || null,
         },
       });
 

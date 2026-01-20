@@ -1,20 +1,45 @@
 /**
- * Canvas Composition System
+ * Canvas Composition System - A4 Portrait Lambda Implementation
  * 
  * Uses Sharp to compose images and text on a canvas.
- * Handles image placement, cropping, and text rendering with safe area enforcement.
+ * Generates COMPLETE vision board including:
+ * - Outer colored background (goal-count-based)
+ * - Inner neutral board panel (#F6F4F0)
+ * - Title text at top-left: "{name}'s Vision Board"
+ * - Rank logo at bottom-right
+ * - Polaroid cards with SQUARE photos and captions
  */
 
 import sharp from "sharp";
-import { LayoutSlot, ImageAsset, TextBlock } from "./types";
+import { LayoutSlot, ImageAsset, TextBlock, GoalCard, VisionBoardAssets } from "./types";
+import { A4_FRAME, A4_CANVAS, getA4InnerBoardRect, PolaroidSlot } from "./layout";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import * as opentype from "opentype.js";
 
+// =============================================================================
+// TYPES & CONFIG
+// =============================================================================
+
 export type CanvasConfig = {
   width: number;
   height: number;
-  backgroundColor: string; // e.g., "#F6F4F0"
+  backgroundColor: string; // Outer background color
+  userName?: string; // User's name for title display
+};
+
+export type A4FrameConfig = {
+  outerPadX: number;
+  outerPadTop: number;
+  outerPadBottom: number;
+  innerBg: string;
+};
+
+export type InnerRectConfig = {
+  innerX: number;
+  innerY: number;
+  innerW: number;
+  innerH: number;
 };
 
 export type CompositionResult = {
@@ -23,40 +48,129 @@ export type CompositionResult = {
   height: number;
 };
 
+// =============================================================================
+// BUFFER VALIDATION HELPERS
+// =============================================================================
+
 /**
- * Convert text to sentence case
- * Lowercases text, uppercases first character, preserves "I" capitalization
+ * Check if buffer is PNG format
  */
-function sentenceCase(text: string): string {
-  const lower = text.toLowerCase();
-  // Uppercase first character
-  let result = lower.charAt(0).toUpperCase() + lower.slice(1);
-  // Preserve "I" capitalization (standalone I)
-  result = result.replace(/\bi\b/g, "I");
-  return result;
+function isPng(buf: Buffer): boolean {
+  return buf?.length > 8 && 
+    buf[0] === 0x89 && 
+    buf[1] === 0x50 && 
+    buf[2] === 0x4E && 
+    buf[3] === 0x47;
 }
 
 /**
- * Compose a vision board from images, text, and layout slots
+ * Check if buffer is JPEG format
+ */
+function isJpg(buf: Buffer): boolean {
+  return buf?.length > 3 && 
+    buf[0] === 0xFF && 
+    buf[1] === 0xD8 && 
+    buf[2] === 0xFF;
+}
+
+/**
+ * Check if buffer is a valid raster image (PNG or JPEG)
+ * Sharp in Lambda may not support SVG reliably
+ */
+function isValidRasterBuffer(buf: Buffer): boolean {
+  return isPng(buf) || isJpg(buf);
+}
+
+/**
+ * Log buffer magic bytes for debugging
+ */
+function logBufferMagicBytes(buf: Buffer, label: string): void {
+  if (!buf || buf.length < 8) {
+    console.log(`🔍 [CANVAS] ${label}: Buffer too short (${buf?.length || 0} bytes)`);
+    return;
+  }
+  const magicBytes = Array.from(buf.slice(0, 8))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join(' ');
+  console.log(`🔍 [CANVAS] ${label} magic bytes: ${magicBytes}`);
+  
+  if (isPng(buf)) {
+    console.log(`✅ [CANVAS] ${label}: Valid PNG format`);
+  } else if (isJpg(buf)) {
+    console.log(`✅ [CANVAS] ${label}: Valid JPEG format`);
+  } else {
+    console.warn(`⚠️  [CANVAS] ${label}: Unknown/unsupported format`);
+  }
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+function hexToRgba(hex: string): { r: number; g: number; b: number; alpha: number } {
+  hex = hex.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return { r, g, b, alpha: 1 };
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(n, max));
+}
+
+function escapeXmlForSvg(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+// =============================================================================
+// MAIN COMPOSE FUNCTION - A4 LAMBDA VERSION
+// =============================================================================
+
+/**
+ * Compose a complete A4 vision board for Lambda deployment
+ * 
+ * Renders the FULL board including:
+ * - Outer colored background (varies by goal count)
+ * - Inner neutral board panel
+ * - Title text: "{name}'s Vision Board"
+ * - Polaroid cards with square photos and captions
+ * - Rank logo at bottom-right
  */
 export async function composeVisionBoard(
   config: CanvasConfig,
   layoutSlots: LayoutSlot[],
   images: ImageAsset[],
   textBlocks: TextBlock[],
-  logoBuffer?: Buffer
+  logoBuffer?: Buffer,
+  backgroundImage?: ImageAsset,
+  goalQuotes?: string[],
+  visionBoardAssets?: VisionBoardAssets
 ): Promise<CompositionResult> {
-  console.log("🎨 [CANVAS] Starting composition...");
+  console.log("🎨 [CANVAS] Starting A4 composition...");
   console.log(`   - Canvas: ${config.width}x${config.height}`);
   console.log(`   - Background: ${config.backgroundColor}`);
   console.log(`   - Layout slots: ${layoutSlots.length}`);
   console.log(`   - Images available: ${images.length}`);
-  console.log(`   - Text blocks: ${textBlocks.length}`);
-  console.log(`   - Logo: ${logoBuffer ? "✅" : "❌"}`);
+  console.log(`   - Logo provided: ${logoBuffer ? "✅" : "❌"}`);
+  console.log(`   - User name: ${config.userName || "(not set)"}`);
+  
+  // Validate logo buffer if provided
+  if (logoBuffer) {
+    logBufferMagicBytes(logoBuffer, "Logo");
+  }
   
   const { width, height, backgroundColor } = config;
+  const isA4Mode = width === A4_CANVAS.width && height === A4_CANVAS.height;
+  
+  console.log(`📐 [CANVAS] A4 mode: ${isA4Mode ? "YES" : "NO"}`);
 
-  // Create base canvas with background color
+  // Create base canvas with outer background color
   let canvas = sharp({
     create: {
       width,
@@ -66,144 +180,230 @@ export async function composeVisionBoard(
     },
   });
 
-  // Separate image and text slots
-  const imageSlots = layoutSlots.filter((slot) => slot.type === "image");
-  const textSlots = layoutSlots.filter((slot) => slot.type === "text");
+  const allComposites: sharp.OverlayOptions[] = [];
+
+  // ==========================================================================
+  // STEP 1: RENDER INNER BOARD RECTANGLE (A4 mode only)
+  // ==========================================================================
   
-  console.log(`📐 [CANVAS] Image slots: ${imageSlots.length}, Text slots: ${textSlots.length}`);
-
-  // Match images to slots and prepare composites
-  console.log("🖼️  [CANVAS] Preparing image composites...");
-  const imageComposites = await prepareImageComposites(
-    imageSlots,
-    images,
-    width,
-    height
-  );
-  console.log(`✅ [CANVAS] Prepared ${imageComposites.length} image composites`);
-
-  // Prepare text composites with safe area enforcement
-  console.log("✍️  [CANVAS] Preparing text composites...");
-  const textComposites = await prepareTextComposites(
-    textSlots,
-    textBlocks,
-    width,
-    height
-  );
-  console.log(`✅ [CANVAS] Prepared ${textComposites.length} text composites`);
-
-  // Combine all composites - TEXT LAST so it appears on top
-  const allComposites = [...imageComposites, ...textComposites];
-
-  // Apply logo if provided (overlay on top)
-  if (logoBuffer) {
-    const logoSize = Math.round(width * 0.08); // 8% of canvas width
+  if (isA4Mode) {
+    const innerRect = getA4InnerBoardRect();
+    console.log(`📐 [CANVAS] Inner board: ${innerRect.innerW}x${innerRect.innerH} at (${innerRect.innerX}, ${innerRect.innerY})`);
+    
+    // Create inner board SVG with rounded corners
+    const innerBoardSvg = `
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <rect 
+          x="${innerRect.innerX}" 
+          y="${innerRect.innerY}" 
+          width="${innerRect.innerW}" 
+          height="${innerRect.innerH}" 
+          rx="28" 
+          ry="28"
+          fill="${A4_FRAME.innerBg}"
+        />
+      </svg>
+    `.trim();
+    
+    const innerBoardBuffer = await sharp(Buffer.from(innerBoardSvg)).png().toBuffer();
     allComposites.push({
-      input: await sharp(logoBuffer)
+      input: innerBoardBuffer,
+      top: 0,
+      left: 0,
+    });
+    console.log("✅ [CANVAS] Added inner board rectangle");
+  }
+
+  // ==========================================================================
+  // STEP 2: RENDER TITLE TEXT (A4 mode with userName)
+  // ==========================================================================
+  
+  if (isA4Mode && config.userName) {
+    const titleText = `${config.userName}'s Vision Board`;
+    const titleFontSize = 72;
+    const titleX = A4_FRAME.outerPadX;
+    const titleY = 130; // Vertically centered in top padding area
+    
+    // Try to load a nice font, fallback to SVG text
+    let titleBuffer: Buffer;
+    
+    try {
+      // Try to load Dazzed Bold font
+      const fontPaths = [
+        join(process.cwd(), "public", "Dazzed", "Dazzed-TRIAL-Bold.ttf"),
+        join(process.cwd(), "public", "Dazzed", "Dazzed-TRIAL-SemiBold.ttf"),
+      ];
+      
+      let font: opentype.Font | null = null;
+      for (const fontPath of fontPaths) {
+        try {
+          const fontBuffer = await readFile(fontPath);
+          const arrayBuffer = fontBuffer.buffer.slice(
+            fontBuffer.byteOffset,
+            fontBuffer.byteOffset + fontBuffer.byteLength
+          );
+          font = opentype.parse(arrayBuffer);
+          console.log(`✅ [CANVAS] Loaded title font: ${fontPath}`);
+          break;
+        } catch {
+          continue;
+        }
+      }
+      
+      if (font) {
+        // Render title using opentype.js for reliable font rendering
+        const path = font.getPath(titleText, 0, 0, titleFontSize, { letterSpacing: 0 });
+        let pathData = path.toSVG(2);
+        if (!pathData.includes('fill=')) {
+          pathData = pathData.replace('<path', '<path fill="#FFFFFF"');
+        } else {
+          pathData = pathData.replace(/fill="[^"]*"/g, 'fill="#FFFFFF"');
+        }
+        
+        const titleSvg = `
+          <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(${titleX}, ${titleY})">
+              ${pathData}
+            </g>
+          </svg>
+        `.trim();
+        
+        titleBuffer = await sharp(Buffer.from(titleSvg)).png().toBuffer();
+      } else {
+        throw new Error("No font available");
+      }
+    } catch {
+      // Fallback to SVG text
+      console.log("⚠️  [CANVAS] Using fallback SVG text for title");
+      const titleSvg = `
+        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <text 
+            x="${titleX}" 
+            y="${titleY}" 
+            font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" 
+            font-size="${titleFontSize}" 
+            font-weight="700" 
+            fill="#FFFFFF">
+            ${escapeXmlForSvg(titleText)}
+          </text>
+        </svg>
+      `.trim();
+      
+      titleBuffer = await sharp(Buffer.from(titleSvg)).png().toBuffer();
+    }
+    
+    allComposites.push({
+      input: titleBuffer,
+      top: 0,
+      left: 0,
+    });
+    console.log(`✅ [CANVAS] Added title: "${titleText}"`);
+  }
+
+  // ==========================================================================
+  // STEP 3: RENDER POLAROID CARDS
+  // ==========================================================================
+  
+  const polaroidSlots = layoutSlots.filter(
+    (slot) => slot.type === "polaroid" || (slot.type === "image" && slot.goalIndex !== undefined && slot.kind !== "background")
+  );
+  
+  console.log(`📸 [CANVAS] Rendering ${polaroidSlots.length} polaroid cards...`);
+  
+  if (visionBoardAssets && visionBoardAssets.cards.length > 0) {
+    // Use VisionBoardAssets with stable mapping
+    const polaroidComposites = await preparePolaroidCardComposites(
+      polaroidSlots,
+      visionBoardAssets.cards,
+      width,
+      height,
+      isA4Mode
+    );
+    allComposites.push(...polaroidComposites);
+    console.log(`✅ [CANVAS] Added ${polaroidComposites.length} polaroid composites`);
+  } else if (goalQuotes && goalQuotes.length > 0) {
+    // Legacy: fallback to old method
+    const polaroidComposites = await preparePolaroidComposites(
+      polaroidSlots,
+      images,
+      goalQuotes,
+      width,
+      height,
+      isA4Mode
+    );
+    allComposites.push(...polaroidComposites);
+    console.log(`✅ [CANVAS] Added ${polaroidComposites.length} polaroid composites (legacy mode)`);
+  }
+
+  // ==========================================================================
+  // STEP 4: RENDER LOGO (A4 mode: bottom-right)
+  // ==========================================================================
+  
+  if (logoBuffer) {
+    try {
+      // Validate logo is a raster format
+      if (!isValidRasterBuffer(logoBuffer)) {
+        console.warn("⚠️  [CANVAS] Logo buffer is not PNG/JPEG, attempting to process anyway...");
+        logBufferMagicBytes(logoBuffer, "Invalid logo");
+      }
+      
+      const logoSize = Math.round(width * 0.10); // 10% of canvas width
+      
+      const logoInput = await sharp(logoBuffer)
         .resize(logoSize, undefined, {
           fit: "inside",
           withoutEnlargement: true,
         })
-        .toBuffer(),
-      top: Math.round(width * 0.02), // 2% padding from top
-      left: Math.round(width * 0.02), // 2% padding from left
-    });
+        .png()
+        .toBuffer();
+      
+      // Get actual logo dimensions after resize
+      const logoMeta = await sharp(logoInput).metadata();
+      const logoW = logoMeta.width || logoSize;
+      const logoH = logoMeta.height || logoSize;
+      
+      if (isA4Mode) {
+        // Bottom-right positioning for A4
+        const logoX = width - A4_FRAME.outerPadX - logoW;
+        const logoY = height - 80 - logoH; // 80px from bottom
+        
+        allComposites.push({
+          input: logoInput,
+          top: logoY,
+          left: logoX,
+        });
+        console.log(`✅ [CANVAS] Added logo at bottom-right (${logoX}, ${logoY})`);
+      } else {
+        // Top-left for non-A4
+        allComposites.push({
+          input: logoInput,
+          top: Math.round(width * 0.02),
+          left: Math.round(width * 0.02),
+        });
+        console.log("✅ [CANVAS] Added logo at top-left");
+      }
+    } catch (error) {
+      console.error("❌ [CANVAS] Failed to process logo:", error);
+      logBufferMagicBytes(logoBuffer, "Failed logo");
+      // Continue without logo rather than crashing
+    }
   }
 
-  // Apply all composites to canvas
-  let finalBuffer = await canvas
+  // ==========================================================================
+  // STEP 5: COMPOSE FINAL IMAGE
+  // ==========================================================================
+  
+  console.log(`🔧 [CANVAS] Compositing ${allComposites.length} layers...`);
+  
+  const finalBuffer = await canvas
     .composite(allComposites)
     .jpeg({
-      quality: 90,
+      quality: 92,
       mozjpeg: true,
     })
     .toBuffer();
 
-  // Strict post-compose coverage validation with mask
-  const gapResult = await validateNoGaps(finalBuffer, width, height, backgroundColor, imageComposites);
-  if (gapResult.hasGaps) {
-    console.warn(`⚠️  [CANVAS] Gaps detected! ${gapResult.uncoveredPixels} uncovered pixels. Scaling images globally...`);
-    
-    // Global scale factor (1.03 = 3% larger)
-    const globalScale = 1.03;
-    
-    // Scale all images by global scale factor
-    const scaledImageComposites = await Promise.all(
-      imageComposites.map(async (composite) => {
-        const processed = sharp(composite.input as Buffer);
-        const metadata = await processed.metadata();
-        const originalWidth = metadata.width || 0;
-        const originalHeight = metadata.height || 0;
-        
-        // Calculate new dimensions with global scale
-        const scaledWidth = Math.ceil(originalWidth * globalScale);
-        const scaledHeight = Math.ceil(originalHeight * globalScale);
-        
-        // Calculate max allowed dimensions based on position
-        const compositeLeft = composite.left || 0;
-        const compositeTop = composite.top || 0;
-        const maxAllowedWidth = width - compositeLeft;
-        const maxAllowedHeight = height - compositeTop;
-        
-        // Clamp to canvas bounds
-        const finalScaledWidth = Math.min(scaledWidth, maxAllowedWidth);
-        const finalScaledHeight = Math.min(scaledHeight, maxAllowedHeight);
-        
-        // Ensure valid dimensions
-        if (finalScaledWidth <= 0 || finalScaledHeight <= 0) {
-          console.warn(`⚠️  [CANVAS] Invalid scaled dimensions, using original`);
-          return composite; // Return original if scaling would be invalid
-        }
-        
-        return {
-          ...composite,
-          input: await processed
-            .resize(finalScaledWidth, finalScaledHeight, {
-              fit: "cover", // Always use cover to fill completely
-              position: "entropy",
-              withoutEnlargement: false, // Allow enlargement
-            })
-            .toBuffer(),
-        };
-      })
-    );
-    
-    // Rebuild canvas with scaled images
-    const scaledCanvas = sharp({
-      create: {
-        width,
-        height,
-        channels: 4,
-        background: hexToRgba(backgroundColor),
-      },
-    } as any);
-    
-    const logoComposite = logoBuffer ? [{
-      input: await sharp(logoBuffer)
-        .resize(Math.round(width * 0.08), undefined, {
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .toBuffer(),
-      top: Math.round(width * 0.02),
-      left: Math.round(width * 0.02),
-    }] : [];
-    
-    finalBuffer = await scaledCanvas
-      .composite([...scaledImageComposites, ...textComposites, ...logoComposite])
-      .jpeg({
-        quality: 90,
-        mozjpeg: true,
-      })
-      .toBuffer();
-    
-    // Re-validate after scaling
-    const recheckGaps = await validateNoGaps(finalBuffer, width, height, backgroundColor, scaledImageComposites);
-    if (recheckGaps.hasGaps) {
-      console.warn(`⚠️  [CANVAS] Still has ${recheckGaps.uncoveredPixels} uncovered pixels after scaling.`);
-      // Could add patch tiles here if needed
-    }
-  }
+  console.log(`✅ [CANVAS] Composition complete: ${(finalBuffer.length / 1024).toFixed(0)}KB`);
 
   return {
     imageBuffer: finalBuffer,
@@ -212,646 +412,270 @@ export async function composeVisionBoard(
   };
 }
 
+// =============================================================================
+// POLAROID RENDERING
+// =============================================================================
+
 /**
- * Prepare image composites for Sharp
+ * Build a polaroid card with SQUARE photo and caption
  * 
- * CRITICAL: Images must fill slots exactly with NO gaps
- * - Integer-snap all positions: x=floor(x), y=floor(y), w=ceil(w), h=ceil(h)
- * - Use fit:"cover", position:"entropy", withoutEnlargement:false
- * - Allow 1-3px overlaps to prevent hairline seams
+ * Polaroid geometry:
+ * - Frame padding: ~6% of card width
+ * - Photo: SQUARE (photoSize x photoSize)
+ * - Caption area: ~20% of card height
+ * - Rounded corners: 10px
  */
-async function prepareImageComposites(
-  imageSlots: LayoutSlot[],
-  images: ImageAsset[],
+async function buildPolaroidCard(params: {
+  imageBuffer: Buffer;
+  caption: string;
+  cardW: number;
+  cardH: number;
+  rotation?: number;
+}): Promise<Buffer> {
+  const { imageBuffer, caption, cardW, cardH, rotation = 0 } = params;
+  
+  // Polaroid geometry for SQUARE photo
+  const radius = 10;
+  const innerPad = Math.round(cardW * 0.06);
+  const photoSize = cardW - (innerPad * 2); // SQUARE photo
+  const photoTop = innerPad;
+  const captionHeight = Math.round(cardH * 0.20);
+  const captionTop = photoTop + photoSize + Math.round(innerPad * 0.6);
+  
+  console.log(`📷 [POLAROID] Card: ${cardW}x${cardH}, Photo: ${photoSize}x${photoSize}, Caption area: ${captionHeight}px`);
+  
+  // Resize photo to EXACT SQUARE (cover fit)
+  const photoBuffer = await sharp(imageBuffer)
+    .resize(photoSize, photoSize, {
+      fit: "cover",
+      position: "entropy",
+      withoutEnlargement: false,
+    })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  
+  const photoDataUri = `data:image/jpeg;base64,${photoBuffer.toString("base64")}`;
+  
+  // Caption text sizing
+  const maxCaptionFontSize = 48;
+  const minCaptionFontSize = 28;
+  const captionPadding = innerPad;
+  const maxCaptionWidth = photoSize;
+  
+  // Simple font size calculation based on caption length
+  let fontSize = maxCaptionFontSize;
+  if (caption.length > 30) {
+    fontSize = minCaptionFontSize;
+  } else if (caption.length > 20) {
+    fontSize = 36;
+  } else if (caption.length > 12) {
+    fontSize = 42;
+  }
+  
+  // Caption Y position (vertically centered in caption area)
+  const captionY = captionTop + (captionHeight / 2) + (fontSize / 3);
+  const captionX = cardW / 2; // Center horizontally
+  
+  // Build SVG for polaroid card
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${cardW}" height="${cardH}" viewBox="0 0 ${cardW} ${cardH}">
+      <defs>
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.15"/>
+        </filter>
+        <clipPath id="photoClip">
+          <rect x="${innerPad}" y="${photoTop}" width="${photoSize}" height="${photoSize}" rx="6"/>
+        </clipPath>
+      </defs>
+      
+      <!-- Card background with shadow -->
+      <rect x="0" y="0" width="${cardW}" height="${cardH}" rx="${radius}" fill="#FFFFFF" filter="url(#shadow)"/>
+      
+      <!-- Photo -->
+      <g clip-path="url(#photoClip)">
+        <image href="${photoDataUri}" x="${innerPad}" y="${photoTop}" width="${photoSize}" height="${photoSize}" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      
+      <!-- Caption -->
+      <text 
+        x="${captionX}" 
+        y="${captionY}"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="${fontSize}"
+        font-weight="500"
+        fill="#111111"
+        text-anchor="middle"
+        dominant-baseline="middle">
+        ${escapeXmlForSvg(caption)}
+      </text>
+    </svg>
+  `.trim();
+  
+  // Convert SVG to PNG
+  let polaroidBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+  
+  // Apply rotation if specified
+  if (rotation !== 0) {
+    polaroidBuffer = await sharp(polaroidBuffer)
+      .rotate(rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+  }
+  
+  return polaroidBuffer;
+}
+
+/**
+ * Prepare polaroid card composites with stable goal-to-image-to-quote mapping
+ */
+async function preparePolaroidCardComposites(
+  polaroidSlots: LayoutSlot[],
+  cards: GoalCard[],
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  isA4Mode: boolean
 ): Promise<sharp.OverlayOptions[]> {
   const composites: sharp.OverlayOptions[] = [];
-  let imageIndex = 0;
-  
-  // 30% of images get stronger zoom (social media style)
-  const strongZoomRatio = 0.3;
+  const margin = isA4Mode ? 40 : 90;
 
-  for (const slot of imageSlots) {
-    if (imageIndex >= images.length) {
-      console.warn(`⚠️  [CANVAS] Not enough images! Reusing images.`);
-      imageIndex = 0;
+  // Sort cards by goalIndex
+  const sortedCards = [...cards].sort((a, b) => a.goalIndex - b.goalIndex);
+
+  // Sort slots by zIndex for proper layering
+  const sortedSlots = [...polaroidSlots].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+  for (const slot of sortedSlots) {
+    // Find matching card by goalIndex
+    let card: GoalCard | undefined;
+    if (slot.goalIndex !== undefined && slot.goalIndex >= 0) {
+      card = sortedCards.find(c => c.goalIndex === slot.goalIndex);
     }
-
-    const image = images[imageIndex];
-    imageIndex++;
+    
+    if (!card) {
+      console.warn(`⚠️  [CANVAS] No card found for slot goalIndex ${slot.goalIndex}, skipping`);
+      continue;
+    }
 
     try {
       // Download image
-      const imageResponse = await fetch(image.downloadUrl || image.url);
+      const imageResponse = await fetch(card.imageDownloadUrl || card.imageUrl);
       if (!imageResponse.ok) {
-        console.warn(`Failed to download image ${image.id}`);
+        console.warn(`❌ [CANVAS] Failed to download image ${card.imageId}`);
         continue;
       }
 
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-
-      // CRITICAL: Integer-snap all positions and dimensions
-      let finalWidth = Math.ceil(slot.width);
-      let finalHeight = Math.ceil(slot.height);
-      let topPos = Math.floor(slot.y);
-      let leftPos = Math.floor(slot.x);
       
-      // Add tiny overlap (1-3px) between adjacent tiles to avoid hairline seams
-      const overlap = 1 + Math.floor(Math.random() * 3); // 1 to 3px
-      
-      // Apply overlap to dimensions
-      finalWidth = Math.ceil(finalWidth) + overlap;
-      finalHeight = Math.ceil(finalHeight) + overlap;
-      
-      // Ensure doesn't exceed canvas bounds
-      const maxAllowedWidth = canvasWidth - leftPos;
-      const maxAllowedHeight = canvasHeight - topPos;
-      finalWidth = Math.min(finalWidth, maxAllowedWidth);
-      finalHeight = Math.min(finalHeight, maxAllowedHeight);
-      
-      // Final integer-snap
-      finalWidth = Math.ceil(finalWidth);
-      finalHeight = Math.ceil(finalHeight);
-      topPos = Math.floor(topPos);
-      leftPos = Math.floor(leftPos);
-      
-      // Ensure valid dimensions
-      if (finalWidth <= 0 || finalHeight <= 0) {
-        console.warn(`⚠️  [CANVAS] Invalid dimensions for slot at (${slot.x}, ${slot.y})`);
-        continue;
-      }
-
-      // Determine crop strategy
-      const useStrongZoom = Math.random() < strongZoomRatio;
-      
-      // Process image - ALWAYS use cover, entropy, allow enlargement
-      let processedImage;
-      if (useStrongZoom) {
-        // Strong zoom: resize to 1.2x then crop to exact size
-        const zoomWidth = Math.ceil(finalWidth * 1.2);
-        const zoomHeight = Math.ceil(finalHeight * 1.2);
-        processedImage = await sharp(imageBuffer)
-          .resize(zoomWidth, zoomHeight, {
-            fit: "cover",
-            position: "entropy",
-            withoutEnlargement: false,
-          })
-          .extract({
-            left: Math.floor((zoomWidth - finalWidth) / 2),
-            top: Math.floor((zoomHeight - finalHeight) / 2),
-            width: finalWidth,
-            height: finalHeight,
-          })
-          .toBuffer();
-      } else {
-        // Normal crop: resize to fill slot exactly
-        processedImage = await sharp(imageBuffer)
-          .resize(finalWidth, finalHeight, {
-            fit: "cover",
-            position: "entropy",
-            withoutEnlargement: false, // Allow enlargement
-          })
-          .toBuffer();
-      }
-      
-      composites.push({
-        input: processedImage,
-        top: topPos,
-        left: leftPos,
+      // Build polaroid card
+      const polaroidBuffer = await buildPolaroidCard({
+        imageBuffer,
+        caption: card.quoteText || "",
+        cardW: Math.round(slot.width),
+        cardH: Math.round(slot.height),
+        rotation: slot.rotation || 0,
       });
+      
+      // Get rotated dimensions
+      const polaroidMeta = await sharp(polaroidBuffer).metadata();
+      const rotatedW = polaroidMeta.width || slot.width;
+      const rotatedH = polaroidMeta.height || slot.height;
+
+      // Calculate position (slot.x/y are already in absolute coordinates)
+      let leftPos = Math.round(slot.x);
+      let topPos = Math.round(slot.y);
+      
+      // Clamp to canvas bounds (with margin for rotation)
+      leftPos = clamp(leftPos, margin, canvasWidth - rotatedW - margin);
+      topPos = clamp(topPos, margin, canvasHeight - rotatedH - margin);
+
+      composites.push({
+        input: polaroidBuffer,
+        left: leftPos,
+        top: topPos,
+      });
+      
+      console.log(`✅ [CANVAS] Polaroid goal ${card.goalIndex}: "${card.quoteText.substring(0, 25)}..." at (${leftPos}, ${topPos})`);
     } catch (error) {
-      console.error(`Error processing image ${image.id}:`, error);
+      console.error(`❌ [CANVAS] Error processing polaroid for goal ${card.goalIndex}:`, error);
       continue;
     }
   }
 
-  console.log(`✅ [CANVAS] Prepared ${composites.length} image composites`);
   return composites;
 }
 
 /**
- * Prepare text composites for Sharp
- * 
- * Typography rules:
- * - LEFT-ALIGNED (text-anchor="start")
- * - Sentence case (uppercase first char, preserve "I")
- * - SHORT text (<=22 chars AND <=4 words): one line, hugged box, 5px padding
- * - LONG text (>22 chars OR >4 words): narrow width 260-420px, wrap by pixel, grow height
- * - Never clip (padded SVG rotation fix)
- * - Dazzed font via opentype.js paths
+ * Prepare polaroid composites (legacy mode)
  */
-async function prepareTextComposites(
-  textSlots: LayoutSlot[],
-  textBlocks: TextBlock[],
+async function preparePolaroidComposites(
+  polaroidSlots: LayoutSlot[],
+  images: ImageAsset[],
+  goalQuotes: string[],
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  isA4Mode: boolean
 ): Promise<sharp.OverlayOptions[]> {
   const composites: sharp.OverlayOptions[] = [];
-  const safeMargin = 32; // 32px minimum margin from edges
-  const minFontSize = 30; // Hard minimum font size
-  const baseFontSize = 44; // Base font size
-  const paddingExact = 16; // Minimum 16px padding on all sides (top, bottom, left, right)
-  const rotationPadding = 0.2; // 20% padding for rotation
+  const margin = isA4Mode ? 40 : 90;
 
-  // Load Dazzed font using opentype.js
-  let font: any = null;
-  let fontBase64: string | undefined;
-  
-  try {
-    const fontPaths = [
-      join(process.cwd(), "public", "Dazzed", "Dazzed-TRIAL-Bold.ttf"),
-      join(process.cwd(), "public", "Dazzed", "Dazzed-TRIAL-Regular.ttf"),
-    ];
+  // Sort slots by zIndex
+  const sortedSlots = [...polaroidSlots].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+  for (let i = 0; i < sortedSlots.length; i++) {
+    const slot = sortedSlots[i];
+    const imageIndex = slot.goalIndex ?? i;
     
-    for (const fontPath of fontPaths) {
-      try {
-        const fontBuffer = await readFile(fontPath);
-        font = opentype.parse(fontBuffer.buffer);
-        fontBase64 = fontBuffer.toString("base64");
-        console.log(`✅ [CANVAS] Loaded Dazzed font`);
-        break;
-      } catch (err) {
+    if (imageIndex >= images.length) {
+      console.warn(`⚠️  [CANVAS] No image for polaroid ${i}, skipping`);
+      continue;
+    }
+
+    const image = images[imageIndex] || images[images.length - 1];
+    const captionText = goalQuotes[imageIndex] || "";
+
+    try {
+      const imageResponse = await fetch(image.downloadUrl || image.url);
+      if (!imageResponse.ok) {
+        console.warn(`❌ [CANVAS] Failed to download image ${image.id}`);
         continue;
       }
-    }
-    
-    if (!font) {
-      console.warn("⚠️  [CANVAS] Could not load Dazzed font, will use fallback");
-    }
-  } catch (error) {
-    console.warn("⚠️  [CANVAS] Error loading font:", error);
-  }
 
-  // Generate 2-4 text blocks
-  const textCount = Math.min(textBlocks.length, 4);
-  
-  for (let i = 0; i < textCount; i++) {
-    const textBlock = textBlocks[i];
-    
-    // Apply sentence case to text
-    const displayText = sentenceCase(textBlock.text);
-    
-    // Determine if text is SHORT (<=22 chars AND <=4 words)
-    const wordCount = displayText.split(" ").length;
-    const charCount = displayText.length;
-    const isShort = charCount <= 22 && wordCount <= 4;
-    
-    // Font weight
-    const fontWeight = textBlock.tone === "bold" ? 700 : 400;
-    const fontWeightStr = fontWeight.toString();
-    
-    // Rotation
-    const rotation = (Math.random() * 4 - 2); // -2° to +2°
-    const letterSpacing = Math.random() * 1; // 0-1px
-    
-    // Measure text using opentype.js
-    const measureText = (text: string, size: number): number => {
-      if (!font) {
-        return text.length * size * 0.55;
-      }
-      const scale = size / font.unitsPerEm;
-      let width = 0;
-      for (let j = 0; j < text.length; j++) {
-        const glyph = font.charToGlyph(text[j]);
-        if (glyph && glyph.advanceWidth !== undefined) {
-          width += glyph.advanceWidth * scale;
-        }
-        if (j < text.length - 1) {
-          width += letterSpacing * scale;
-        }
-      }
-      return width;
-    };
-    
-    let lines: string[] = [];
-    let finalFontSize = baseFontSize;
-    let finalCardWidth: number;
-    let finalCardHeight: number;
-    
-    if (isShort) {
-      // SHORT TEXT: One line, hugged box, 16px padding
-      lines = [displayText];
-      finalFontSize = baseFontSize; // Start with 44px
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
       
-      // Measure text width
-      let textWidth = measureText(displayText, finalFontSize);
+      const polaroidBuffer = await buildPolaroidCard({
+        imageBuffer,
+        caption: captionText,
+        cardW: Math.round(slot.width),
+        cardH: Math.round(slot.height),
+        rotation: slot.rotation || 0,
+      });
       
-      // Card width hugs text: textWidth + 2*padding
-      finalCardWidth = Math.ceil(textWidth) + (paddingExact * 2);
-      
-      // Enforce minimum size
-      const minW = 160;
-      const minH = 56;
-      finalCardWidth = Math.max(finalCardWidth, minW);
-      
-      // Card height: use font metrics for accurate height calculation
-      let fontAscentShort = finalFontSize * 0.8; // Fallback estimate
-      let fontDescentShort = finalFontSize * 0.2; // Fallback estimate
-      if (font) {
-        const scale = finalFontSize / font.unitsPerEm;
-        fontAscentShort = (font.ascender || font.tables.os2?.sTypoAscender || 800) * scale;
-        fontDescentShort = Math.abs((font.descender || font.tables.os2?.sTypoDescender || -200) * scale);
-      }
-      const textHeight = fontAscentShort + fontDescentShort;
-      finalCardHeight = Math.ceil(textHeight) + (paddingExact * 2);
-      finalCardHeight = Math.max(finalCardHeight, minH);
-    } else {
-      // LONG TEXT: Narrow width (300-480px), wrap by pixel, grow height
-      finalCardWidth = 300 + Math.floor(Math.random() * 180); // 300-480px
-      finalFontSize = baseFontSize;
-      
-      // Wrap text by pixel width using opentype.js
-      const textAreaWidth = finalCardWidth - (paddingExact * 2);
-      const words = displayText.split(" ");
-      let currentLine = "";
-      
-      for (const word of words) {
-        const testLine = currentLine ? currentLine + " " + word : word;
-        const testWidth = measureText(testLine, finalFontSize);
-        
-        if (testWidth <= textAreaWidth) {
-          currentLine = testLine;
-        } else {
-          if (currentLine) {
-            lines.push(currentLine);
-          }
-          currentLine = word;
-          // Truncate if word is too long
-          if (measureText(word, finalFontSize) > textAreaWidth) {
-            let truncated = word;
-            while (truncated.length > 0 && measureText(truncated, finalFontSize) > textAreaWidth) {
-              truncated = truncated.slice(0, -1);
-            }
-            currentLine = truncated || word[0];
-          }
-        }
-      }
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-      
-      // Calculate height based on lines using font metrics
-      const lineHeight = finalFontSize * 1.15;
-      
-      // Calculate actual text height using font metrics
-      let fontAscent = finalFontSize * 0.8; // Fallback estimate
-      let fontDescent = finalFontSize * 0.2; // Fallback estimate
-      if (font) {
-        const scale = finalFontSize / font.unitsPerEm;
-        fontAscent = (font.ascender || font.tables.os2?.sTypoAscender || 800) * scale;
-        fontDescent = Math.abs((font.descender || font.tables.os2?.sTypoDescender || -200) * scale);
-      }
-      
-      // Total text height = first line ascent + (lines-1) * lineHeight + last line descent
-      // For multi-line, we use: ascent + (numLines-1) * lineHeight + descent
-      const textContentHeight = lines.length === 1 
-        ? fontAscent + fontDescent
-        : fontAscent + (lines.length - 1) * lineHeight + fontDescent;
-      
-      let calculatedHeight = Math.ceil(textContentHeight) + (paddingExact * 2);
-      const maxH = 320;
-      
-      // Auto-size down if too tall
-      if (calculatedHeight > maxH) {
-        const scaleFactor = (maxH - paddingExact * 2) / (calculatedHeight - paddingExact * 2);
-        finalFontSize = Math.max(minFontSize, Math.floor(finalFontSize * scaleFactor * 0.95));
-        
-        // Recalculate font metrics with new size
-        if (font) {
-          const scale = finalFontSize / font.unitsPerEm;
-          fontAscent = (font.ascender || font.tables.os2?.sTypoAscender || 800) * scale;
-          fontDescent = Math.abs((font.descender || font.tables.os2?.sTypoDescender || -200) * scale);
-        } else {
-          fontAscent = finalFontSize * 0.8;
-          fontDescent = finalFontSize * 0.2;
-        }
-        
-        // Re-wrap with new font size
-        lines = [];
-        currentLine = "";
-        const newTextAreaWidth = finalCardWidth - (paddingExact * 2);
-        const newLineHeight = finalFontSize * 1.15;
-        
-        for (const word of words) {
-          const testLine = currentLine ? currentLine + " " + word : word;
-          const testWidth = measureText(testLine, finalFontSize);
-          
-          if (testWidth <= newTextAreaWidth) {
-            currentLine = testLine;
-          } else {
-            if (currentLine) {
-              lines.push(currentLine);
-            }
-            currentLine = word;
-            if (measureText(word, finalFontSize) > newTextAreaWidth) {
-              let truncated = word;
-              while (truncated.length > 0 && measureText(truncated, finalFontSize) > newTextAreaWidth) {
-                truncated = truncated.slice(0, -1);
-              }
-              currentLine = truncated || word[0];
-            }
-          }
-        }
-        if (currentLine) {
-          lines.push(currentLine);
-        }
-        
-        // Recalculate height with new metrics
-        const newTextContentHeight = lines.length === 1
-          ? fontAscent + fontDescent
-          : fontAscent + (lines.length - 1) * newLineHeight + fontDescent;
-        calculatedHeight = Math.ceil(newTextContentHeight) + (paddingExact * 2);
-      }
-      
-      finalCardHeight = calculatedHeight;
-    }
-    
-    // Add rotation padding (20% of max dimension)
-    const rotationPad = Math.ceil(Math.max(finalCardWidth, finalCardHeight) * rotationPadding);
-    const paddedWidth = finalCardWidth + (rotationPad * 2);
-    const paddedHeight = finalCardHeight + (rotationPad * 2);
-    
-    // Position: use text slot position if available, otherwise random safe position
-    let finalX = textSlots[i]?.x !== undefined 
-      ? Math.floor(textSlots[i].x) 
-      : safeMargin + Math.random() * (canvasWidth - finalCardWidth - safeMargin * 2);
-    let finalY = textSlots[i]?.y !== undefined 
-      ? Math.floor(textSlots[i].y) 
-      : safeMargin + Math.random() * (canvasHeight - finalCardHeight - safeMargin * 2);
-    
-    // Clamp to safe area (for inner card)
-    const maxX = canvasWidth - finalCardWidth - safeMargin;
-    const maxY = canvasHeight - finalCardHeight - safeMargin;
-    finalX = Math.max(safeMargin, Math.min(finalX, maxX));
-    finalY = Math.max(safeMargin, Math.min(finalY, maxY));
-    
-    // Background: Soft girl palette (randomized per card)
-    const softGirlColors = [
-      "#F7D6DD", // blush pink
-      "#FFF4EA", // warm cream
-      "#E9D7F5", // soft lilac
-      "#D7E8F7", // powder blue
-      "#DDEBDF", // sage green
-    ];
-    const bgColor = softGirlColors[Math.floor(Math.random() * softGirlColors.length)];
-    const bgOpacity = 0.92 + (Math.random() * 0.05); // 92-97%
-    const borderRadius = 10 + Math.random() * 4; // 10-14px
-    
-    const lineHeight = finalFontSize * 1.15;
-    
-    // Calculate font metrics for text positioning (after finalCardHeight is set)
-    // These metrics are used to position text baseline correctly
-    let fontAscent = finalFontSize * 0.8; // Fallback estimate (80% of fontSize)
-    let fontDescent = finalFontSize * 0.2; // Fallback estimate
-    if (font) {
-      const scale = finalFontSize / font.unitsPerEm;
-      fontAscent = (font.ascender || font.tables.os2?.sTypoAscender || 800) * scale;
-      fontDescent = Math.abs((font.descender || font.tables.os2?.sTypoDescender || -200) * scale);
-    }
-    
-    // Text color: #111 or #222
-    const textColor = Math.random() > 0.5 ? "#111" : "#222";
-    
-    // Define single content origin for consistent rect and text positioning
-    const contentX = rotationPad;
-    const contentY = rotationPad;
-    
-    // Rect starts at content origin (fully wraps text including ascent/descent)
-    const rectX = contentX;
-    const rectY = contentY;
-    
-    // Text X position: rect left + padding (guarantees visible left padding)
-    const textX = contentX + paddingExact;
-    
-    // Text Y position: rect top + padding + fontAscent
-    // This positions the baseline such that ascenders start at paddingTop
-    // opentype.js paths use baseline at y=0 (in font units), so we offset by ascent
-    // to align the top of ascenders with paddingTop
-    const textY = contentY + paddingExact + fontAscent;
-    
-    // Create SVG with padded viewport and left-aligned text
-    let svgText: string;
-    
-    if (font && fontBase64) {
-      // Use opentype.js paths for reliable rendering
-      const pathElements: string[] = [];
-      
-      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        const line = lines[lineIndex];
-        const path = font.getPath(line, 0, 0, finalFontSize, {
-          letterSpacing: letterSpacing * (finalFontSize / font.unitsPerEm),
-        });
-        let pathData = path.toSVG(2);
-        // Add fill color to path if not present
-        if (!pathData.includes('fill=')) {
-          pathData = pathData.replace(/<path/, `<path fill="${textColor}"`);
-        } else {
-          pathData = pathData.replace(/fill="[^"]*"/g, `fill="${textColor}"`);
-        }
-        
-        // opentype.js paths are generated with baseline at y=0 (in font units)
-        // We've already positioned textY at: paddingTop + fontAscent (so baseline is correct)
-        // For multi-line, each line's baseline is offset by lineIndex * lineHeight
-        // Path coordinates are in font units, but getPath() scales them to fontSize
-        // The path's y=0 corresponds to the baseline, so we translate to baseline position
-        const lineBaselineY = textY + (lineIndex * lineHeight);
-        pathElements.push(
-          `<g transform="translate(${textX}, ${lineBaselineY})">${pathData}</g>`
-        );
-      }
-      
-      svgText = `
-        <svg width="${paddedWidth}" height="${paddedHeight}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${paddedWidth} ${paddedHeight}">
-          <defs>
-            <style>
-              @font-face {
-                font-family: 'Dazzed';
-                src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
-                font-weight: ${fontWeightStr};
-              }
-            </style>
-          </defs>
-          <g transform="rotate(${rotation} ${paddedWidth/2} ${paddedHeight/2})">
-            <rect
-              x="${rectX}"
-              y="${rectY}"
-              width="${finalCardWidth}"
-              height="${finalCardHeight}"
-              fill="${bgColor}"
-              opacity="${bgOpacity.toFixed(2)}"
-              rx="${borderRadius.toFixed(1)}"
-            />
-            ${pathElements.join("\n            ")}
-          </g>
-        </svg>
-      `.trim();
-    } else {
-      // Fallback: SVG text with left alignment
-      svgText = `
-        <svg width="${paddedWidth}" height="${paddedHeight}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${paddedWidth} ${paddedHeight}">
-          <defs>
-            <style>
-              @font-face {
-                font-family: 'Dazzed';
-                src: url(data:font/truetype;charset=utf-8;base64,${fontBase64 || ""}) format('truetype');
-                font-weight: ${fontWeightStr};
-              }
-            </style>
-          </defs>
-          <g transform="rotate(${rotation} ${paddedWidth/2} ${paddedHeight/2})">
-            <rect
-              x="${rectX}"
-              y="${rectY}"
-              width="${finalCardWidth}"
-              height="${finalCardHeight}"
-              fill="${bgColor}"
-              opacity="${bgOpacity.toFixed(2)}"
-              rx="${borderRadius.toFixed(1)}"
-            />
-            ${lines.map((line, lineIndex) => {
-              // For SVG <text> with dominant-baseline="hanging", y is the top of the text
-              // We need to position it at: paddingTop (where ascenders should start)
-              // Since textY already includes fontAscent offset for paths (baseline position),
-              // for SVG text we subtract fontAscent to get the hanging baseline position
-              const lineBaselineY = textY + (lineIndex * lineHeight);
-              const lineHangingY = lineBaselineY - fontAscent;
-              return `
-              <text
-                x="${textX}"
-                y="${lineHangingY}"
-                font-family="Dazzed, Arial, sans-serif"
-                font-size="${finalFontSize}"
-                font-weight="${fontWeightStr}"
-                fill="${textColor}"
-                text-anchor="start"
-                dominant-baseline="hanging"
-                style="letter-spacing: ${letterSpacing.toFixed(1)}px;"
-              >
-                ${escapeXml(line)}
-              </text>
-            `;
-            }).join("")}
-          </g>
-        </svg>
-      `.trim();
-    }
+      const polaroidMeta = await sharp(polaroidBuffer).metadata();
+      const rotatedW = polaroidMeta.width || slot.width;
+      const rotatedH = polaroidMeta.height || slot.height;
 
-    const svgBuffer = Buffer.from(svgText);
-    
-    // Composite with offset to account for rotation padding
-    composites.push({
-      input: svgBuffer,
-      top: Math.round(finalY - rotationPad),
-      left: Math.round(finalX - rotationPad),
-    });
+      let leftPos = Math.round(slot.x);
+      let topPos = Math.round(slot.y);
+      
+      leftPos = clamp(leftPos, margin, canvasWidth - rotatedW - margin);
+      topPos = clamp(topPos, margin, canvasHeight - rotatedH - margin);
+
+      composites.push({
+        input: polaroidBuffer,
+        left: leftPos,
+        top: topPos,
+      });
+    } catch (error) {
+      console.error(`❌ [CANVAS] Error processing polaroid ${i}:`, error);
+      continue;
+    }
   }
 
   return composites;
 }
 
-/**
- * Convert hex color to RGBA object
- */
-function hexToRgba(hex: string): { r: number; g: number; b: number; alpha: number } {
-  hex = hex.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  return { r, g, b, alpha: 1 };
-}
+// =============================================================================
+// EXPORTS FOR BACKWARDS COMPATIBILITY
+// =============================================================================
 
-/**
- * Escape XML special characters
- */
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-/**
- * Validate that canvas has no visible gaps using mask-based detection
- * Creates a mask of all placed tiles and detects uncovered pixels
- */
-async function validateNoGaps(
-  imageBuffer: Buffer,
-  width: number,
-  height: number,
-  backgroundColor: string,
-  imageComposites: sharp.OverlayOptions[]
-): Promise<{ hasGaps: boolean; uncoveredPixels: number }> {
-  try {
-    const image = sharp(imageBuffer);
-    const { data, info } = await image
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    const bgRgba = hexToRgba(backgroundColor);
-    const tolerance = 15; // Allow small color differences
-    
-    // Create a mask of all placed tiles
-    const mask = new Set<string>();
-    
-    // Mark all pixels covered by image composites
-    for (const composite of imageComposites) {
-      const left = composite.left || 0;
-      const top = composite.top || 0;
-      const processed = sharp(composite.input as Buffer);
-      const metadata = await processed.metadata();
-      const tileWidth = metadata.width || 0;
-      const tileHeight = metadata.height || 0;
-      
-      // Mark all pixels in this tile as covered
-      for (let y = Math.max(0, top); y < Math.min(height, top + tileHeight); y++) {
-        for (let x = Math.max(0, left); x < Math.min(width, left + tileWidth); x++) {
-          mask.add(`${x},${y}`);
-        }
-      }
-    }
-    
-    // Scan entire canvas for uncovered pixels (background color)
-    let uncoveredPixels = 0;
-    const sampleRate = 4; // Sample every 4th pixel for performance
-    
-    for (let y = 0; y < height; y += sampleRate) {
-      for (let x = 0; x < width; x += sampleRate) {
-        const idx = (x + y * width) * info.channels;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-        
-        // Check if pixel matches background color
-        const matchesBackground = (
-          Math.abs(r - bgRgba.r) < tolerance &&
-          Math.abs(g - bgRgba.g) < tolerance &&
-          Math.abs(b - bgRgba.b) < tolerance
-        );
-        
-        // Check if pixel is not in mask (uncovered)
-        const isUncovered = !mask.has(`${x},${y}`);
-        
-        if (matchesBackground && isUncovered) {
-          uncoveredPixels += (sampleRate * sampleRate); // Estimate total uncovered pixels
-        }
-      }
-    }
-    
-    // Consider gaps if more than 0.1% of canvas is uncovered
-    const totalPixels = width * height;
-    const uncoveredPercentage = (uncoveredPixels / totalPixels) * 100;
-    const hasGaps = uncoveredPercentage > 0.1;
-    
-    if (hasGaps) {
-      console.log(`⚠️  [CANVAS] Gap validation: ${uncoveredPixels.toLocaleString()} uncovered pixels (${uncoveredPercentage.toFixed(2)}%)`);
-    }
-    
-    return { hasGaps, uncoveredPixels };
-  } catch (error) {
-    console.warn("⚠️  [CANVAS] Gap validation failed:", error);
-    return { hasGaps: false, uncoveredPixels: 0 };
-  }
-}
+export { CanvasConfig };

@@ -57,6 +57,7 @@ export async function GET(
       imageUrl: job.image_url,
       goals: job.goals,
       email: job.email,
+      name: job.name,
       errorMessage: job.error_message,
       createdAt: job.created_at,
       updatedAt: job.updated_at,

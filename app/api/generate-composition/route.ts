@@ -28,7 +28,7 @@ function getSupabaseClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { goals, email, vibe } = await request.json();
+    const { goals, email, vibe, name } = await request.json();
 
     if (!goals || !Array.isArray(goals) || goals.length === 0) {
       return NextResponse.json(
@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       .from("vision_board_jobs")
       .insert({
         email: email || null,
+        name: name || null,
         goals: validGoals,
         status: "processing",
       })
@@ -94,16 +95,16 @@ export async function POST(request: NextRequest) {
       const imageProvider = new PexelsProvider(PEXELS_API_KEY);
 
       // Load logo
-      const logoPath = join(process.cwd(), "public", "rank-logo.svg");
+      const logoPath = join(process.cwd(), "public", "rank-logo-white.png");
 
       // Generate vision board
       console.log(`Starting composition for job ${jobId}`);
       const result = await composeVisionBoardFromGoals({
         goals: validGoals,
         vibe: vibe || undefined,
+        userName: name || undefined,
         imageProvider,
-        canvasSize: { width: 2048, height: 2048 },
-        backgroundColor: "#F6F4F0",
+        layoutTemplate: "polaroid_stack", // Use golden layout
         openai,
         logoPath,
       });

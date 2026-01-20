@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS vision_board_jobs (
   
   -- User information
   email TEXT,
+  name TEXT,
   
   -- Job status: 'pending', 'processing', 'complete', 'failed'
   status VARCHAR(20) DEFAULT 'pending' NOT NULL,

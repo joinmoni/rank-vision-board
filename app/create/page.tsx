@@ -8,25 +8,26 @@ import { useRouter } from "next/navigation";
 export default function CreatePage() {
   const router = useRouter();
   const [goals, setGoals] = useState<string[]>(["", ""]);
+  const [name, setName] = useState<string>("");
+  const [gender, setGender] = useState<"male" | "female">("male");
   const [email, setEmail] = useState<string>("");
   const [emailTouched, setEmailTouched] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isValidEmail = (value: string) => {
-    if (!value) return true; // optional - empty is allowed
-    // Simple, robust email check (avoid overly strict RFC patterns)
+    if (!value) return true; // optional field - empty is valid
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   };
-  const emailProvided = email.trim() !== "";
+  const nameValid = name.trim() !== "";
   const emailValid = isValidEmail(email);
-  const showEmailError = emailTouched && emailProvided && !emailValid;
+  const showEmailError = emailTouched && !emailValid;
 
   const MAX_GOALS = 7;
   
   const addGoal = () => {
     if (goals.length >= MAX_GOALS) {
-      return; // Don't add if already at max
+      return;
     }
     setGoals([...goals, ""]);
   };
@@ -39,14 +40,19 @@ export default function CreatePage() {
 
   // Check if first 2 goals are filled
   const canGenerate = goals[0]?.trim() !== "" && goals[1]?.trim() !== "";
-  const canSubmit = canGenerate && (emailValid || !emailProvided) && !isGenerating;
-  const canAddGoal = goals.length < MAX_GOALS && canGenerate; // Can only add if under max and first 2 are filled
+  const canSubmit = canGenerate && nameValid && !isGenerating; // Email is optional
+  const canAddGoal = goals.length < MAX_GOALS && canGenerate;
 
   const handleGenerate = async () => {
     if (!canGenerate || isGenerating) return;
-    if (emailProvided && !emailValid) {
+    if (!nameValid) {
+      setError("Please enter your name.");
+      return;
+    }
+    // Email is optional, but if provided, it should be valid
+    if (email && !emailValid) {
       setEmailTouched(true);
-      setError("Please enter a valid email address.");
+      setError("Please enter a valid email address or leave it empty.");
       return;
     }
 
@@ -61,7 +67,6 @@ export default function CreatePage() {
     setError(null);
 
     try {
-      // Use Lambda for server-side generation (production)
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -70,7 +75,9 @@ export default function CreatePage() {
         body: JSON.stringify({ 
           goals: validGoals, 
           email: email.trim() || undefined,
-          uploadToStorage: true, // Upload to Supabase for local route too
+          name: name.trim() || undefined,
+          gender: gender,
+          uploadToStorage: true,
         }),
       });
 
@@ -81,12 +88,9 @@ export default function CreatePage() {
 
       const data = await response.json();
       
-      // Handle both job-based (Firebase/local with storage) and direct image responses
       if (data.jobId) {
-        // Job-based flow: redirect to board page
         router.push(`/board/${data.jobId}`);
       } else if (data.imageDataUrl) {
-        // Direct image flow: store in sessionStorage and redirect
         sessionStorage.setItem("visionBoardImage", data.imageDataUrl);
         sessionStorage.setItem("visionBoardGoals", JSON.stringify(validGoals));
         router.push("/board");
@@ -101,260 +105,166 @@ export default function CreatePage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FFF7EF]">
-      {/* Mobile Layout */}
-      <div className="lg:hidden">
-        <div className="max-w-[450px] mx-auto px-6 pt-10 pb-12">
-          {/* Logo */}
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/">
-              <Image
-                src="/rank-logo.svg"
-                alt="Rank Logo"
-                width={120}
-                height={35}
-                priority
-                className="h-[22px] w-auto"
-              />
-            </Link>
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-[52px] font-[900] text-[#1A1A1A] leading-[0.95] tracking-[-2px] mb-6">
-            Type In Your Goals
-          </h1>
-
-          {/* Email Input (Optional) */}
-          <div className="mb-6">
-            <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-              Your e-mail (So we can send your vision board once it's ready)
-            </label>
-            <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setEmailTouched(true)}
-              aria-invalid={showEmailError ? "true" : "false"}
-              className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all placeholder:text-gray-300 ${
-                showEmailError ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-[#F97316]"
-              }`}
-            />
-            {showEmailError && (
-              <p className="mt-2 text-sm text-red-600">Please enter a valid email address.</p>
-            )}
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 mb-8 form-scroll">
-            {goals.map((goal, index) => (
-              <div key={index}>
-                <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                  Goal {index + 1}
-                </label>
-                <input
-                  type="text"
-                  placeholder={
-                    index === 0
-                      ? "e.g. Run a marathon"
-                      : index === 1
-                        ? "e.g. Travel to Japan"
-                        : ""
-                  }
-                  value={goal}
-                  onChange={(e) => updateGoal(index, e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#F97316] outline-none transition-all placeholder:text-gray-300"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Buttons */}
-          <div className="flex flex-col gap-4 mb-12">
-            <button
-              onClick={addGoal}
-              disabled={!canAddGoal}
-              className={`w-full py-[18px] rounded-[14px] text-[18px] font-bold flex items-center justify-center gap-2 transition-transform ${
-                canAddGoal
-                  ? "bg-[#F97316] text-white active:scale-[0.98]"
-                  : "bg-[#FFD6B0] text-white cursor-not-allowed"
-              }`}
-              title={goals.length >= MAX_GOALS ? `Maximum ${MAX_GOALS} goals allowed` : "Add another goal"}
-            >
-              Add Goal {goals.length >= MAX_GOALS ? `(Max ${MAX_GOALS})` : ""}
-              <span
-                className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
-                  canAddGoal
-                    ? "bg-white text-[#F97316]"
-                    : "bg-white/50 text-[#F97316]/50"
-                }`}
-              >
-                ＋
-              </span>
-            </button>
-            <button
-              onClick={handleGenerate}
-              disabled={!canSubmit}
-              className={`w-full py-[18px] rounded-[14px] text-[18px] font-bold transition-transform ${
-                canSubmit
-                  ? "bg-[#F97316] text-white cursor-pointer active:scale-[0.98]"
-                  : "bg-[#FFD6B0] text-white cursor-not-allowed"
-              }`}
-            >
-              {isGenerating ? "Creating board.." : "Generate Board"}
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden lg:flex flex-row min-h-screen w-full overflow-hidden">
-        {/* Left side - Collage */}
-        <div className="w-1/2 relative overflow-hidden">
-          <div className="relative w-full h-screen min-h-[800px] flex items-center justify-center">
-            <img
-              src="/vision-collage.png"
-              alt="Vision board collage"
-              className="w-full h-full object-cover object-center"
-              loading="lazy"
+    <div className="bg-white text-black min-h-screen">
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Left side - Preview Image (Desktop only) */}
+        <div className="hidden lg:flex lg:w-1/2 bg-[#3E0000] items-center justify-center p-12">
+          <div className="relative max-w-md">
+            <Image
+              src="/image-14.png"
+              alt="Vision Preview"
+              width={800}
+              height={1000}
+              className="w-full h-auto object-contain"
+              priority
+              quality={100}
+              unoptimized={false}
             />
           </div>
         </div>
 
         {/* Right side - Form */}
-        <div className="w-1/2 bg-white flex flex-col justify-center px-24">
+        <div className="lg:w-1/2 p-8 md:p-16 lg:p-20 overflow-y-auto max-h-screen custom-scroll">
+          {/* Logo */}
           <div className="flex items-center gap-2 mb-10">
             <Link href="/">
               <Image
-                src="/rank-logo.svg"
+                src="/rank-logo-black.svg"
                 alt="Rank Logo"
                 width={120}
                 height={35}
                 priority
-                className="h-8 w-auto"
+                className="h-6 w-auto"
               />
             </Link>
           </div>
 
-          <div className="max-w-xl w-full">
-            <h1 className="text-6xl font-[900] text-[#1A1310] leading-tight mb-8">
-              Type In Your Goals
-            </h1>
+          <form className="space-y-6 max-w-lg" onSubmit={(e) => { e.preventDefault(); handleGenerate(); }}>
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-sm font-semibold mb-3 text-gray-900">Gender</label>
+              <div className="flex p-1 bg-gray-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setGender("male")}
+                  className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+                    gender === "male"
+                      ? "bg-white shadow-sm"
+                      : "text-gray-500 font-semibold"
+                  }`}
+                >
+                  Male
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGender("female")}
+                  className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+                    gender === "female"
+                      ? "bg-white shadow-sm"
+                      : "text-gray-500 font-semibold"
+                  }`}
+                >
+                  Female
+                </button>
+              </div>
+            </div>
 
-                    {/* Email Input (Optional) */}
-                    <div className="mb-6">
-                      <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                        Your e-mail (So we can send your vision board once it's ready)
-                      </label>
-                      <input
-                        type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                        placeholder="your@email.com"
-                        value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onBlur={() => setEmailTouched(true)}
-                    aria-invalid={showEmailError ? "true" : "false"}
-                    className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all placeholder:text-gray-300 ${
-                      showEmailError ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-[#FF7A00]"
-                    }`}
-                      />
-                  {showEmailError && (
-                    <p className="mt-2 text-sm text-red-600">Please enter a valid email address.</p>
-                  )}
-                    </div>
+            {/* Name Input */}
+            <div>
+              <label className="block text-sm font-semibold mb-3 text-gray-900">Name</label>
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder-gray-400"
+              />
+            </div>
+
+            {/* Email Input */}
+            <div>
+              <label className="block text-sm font-semibold mb-3 text-gray-900">
+                Your e-mail (Optional - So we can send your vision board once it's ready)
+              </label>
+              <input
+                type="email"
+                placeholder="johndoe@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                aria-invalid={showEmailError ? "true" : "false"}
+                className={`w-full px-5 py-4 border rounded-2xl focus:outline-none focus:ring-1 placeholder-gray-400 ${
+                  showEmailError
+                    ? "border-red-400 focus:ring-red-500"
+                    : "border-gray-200 focus:ring-gray-400"
+                }`}
+              />
+              {showEmailError && (
+                <p className="mt-2 text-sm text-red-600">Please enter a valid email address.</p>
+              )}
+            </div>
+
+            {/* Goals Section */}
+            <div className="pt-6">
+              <h2 className="text-4xl font-extrabold mb-8 tracking-tight">Type in your Goals</h2>
+              
+              <div className="space-y-6">
+                {goals.map((goal, index) => (
+                  <div key={index}>
+                    <label className="block text-sm font-semibold mb-2 text-gray-900">
+                      Goal {index + 1}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter your goal name"
+                      value={goal}
+                      onChange={(e) => updateGoal(index, e.target.value)}
+                      className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder-gray-400"
+                    />
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={addGoal}
+                  disabled={!canAddGoal}
+                  className={`w-full py-4 border border-dashed rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors ${
+                    canAddGoal
+                      ? "bg-gray-50 border-gray-300 text-[#3E0000] hover:bg-gray-100"
+                      : "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+                  title={goals.length >= MAX_GOALS ? `Maximum ${MAX_GOALS} goals allowed` : "Add another goal"}
+                >
+                  <span className="text-xl">+</span> Add your goals
+                </button>
+              </div>
+            </div>
 
             {/* Error Message */}
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                 {error}
               </div>
             )}
 
-            <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 mb-10 form-scroll">
-              {goals.map((goal, index) => (
-                <div key={index}>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide">
-                    Goal {index + 1}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={
-                      index === 0
-                        ? "e.g. Run a marathon"
-                        : index === 1
-                          ? "e.g. Travel to Japan"
-                          : ""
-                    }
-                    value={goal}
-                    onChange={(e) => updateGoal(index, e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 focus:border-[#FF7A00] outline-none transition-all placeholder:text-gray-300"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-row gap-4">
+            {/* Generate Button */}
+            <div className="pt-8">
               <button
-                onClick={addGoal}
-                disabled={!canAddGoal}
-                className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
-                  canAddGoal
-                    ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white active:scale-95"
-                    : "bg-[#FFD6B0] text-white cursor-not-allowed"
-                }`}
-                title={goals.length >= MAX_GOALS ? `Maximum ${MAX_GOALS} goals allowed` : "Add another goal"}
-              >
-                Add Goal {goals.length >= MAX_GOALS ? `(Max ${MAX_GOALS})` : ""}
-                <span
-                  className={`rounded-full w-6 h-6 flex items-center justify-center text-sm ${
-                    canAddGoal
-                      ? "bg-white text-[#FF7A00]"
-                      : "bg-white/50 text-[#FF7A00]/50"
-                  }`}
-                >
-                  ＋
-                </span>
-              </button>
-              <button
-                onClick={handleGenerate}
+                type="submit"
                 disabled={!canSubmit}
-                className={`flex-1 py-4 px-8 rounded-2xl font-bold text-lg transition-all ${
+                className={`w-full py-5 rounded-full text-lg font-bold transition-opacity shadow-lg ${
                   canSubmit
-                    ? "bg-[#FF7A00] hover:bg-[#E66D00] text-white cursor-pointer active:scale-95"
-                    : "bg-[#FFD6B0] text-white cursor-not-allowed"
+                    ? "bg-[#3E0000] text-white hover:opacity-95 cursor-pointer"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {isGenerating ? "Creating Board..." : "Generate Board"}
+                {isGenerating ? "Generating..." : "Generate my Vision Board"}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
-
-      <style jsx>{`
-        .form-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-        .form-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .form-scroll::-webkit-scrollbar-thumb {
-          background: #d1d5db;
-          border-radius: 10px;
-        }
-      `}</style>
     </div>
   );
 }
-

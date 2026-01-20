@@ -1,22 +1,24 @@
 /**
- * Vision Board Generation Orchestrator
+ * Vision Board Generation Orchestrator - A4 Lambda Version
  * 
  * Main function that coordinates all components:
- * - Layout generation
+ * - Layout generation (A4 portrait with goal-count-based colors)
  * - AI-powered search query generation
  * - Image fetching
  * - Text generation
- * - Canvas composition
+ * - Canvas composition (full backend render)
  */
 
-import { generateLayout, getRandomTemplate } from "./layout";
+import { generateLayout, getA4Layout, A4_CANVAS, A4_OUTER_BG, GoalCount } from "./layout";
 import { ImageProvider } from "./image-provider";
 import {
   generateImageSearchQueries,
   generateMotivationalText,
+  generateGoalQuotes,
+  selectBestImagesWithOpenAI,
 } from "./ai-prompts";
 import { composeVisionBoard as composeCanvas, CanvasConfig } from "./canvas";
-import { LayoutTemplate, ImageAsset, TextBlock, UserGoals, VisionBoardResult, ImageWithGoal } from "./types";
+import { LayoutTemplate, ImageAsset, TextBlock, UserGoals, VisionBoardResult, ImageWithGoal, GoalCard, VisionBoardAssets } from "./types";
 import OpenAI from "openai";
 import { readFile } from "fs/promises";
 import { join } from "path";
@@ -28,7 +30,8 @@ export type GenerateVisionBoardOptions = {
   layoutTemplate?: LayoutTemplate;
   canvasSize?: { width: number; height: number };
   backgroundColor?: string;
-  openai?: OpenAI; // Made optional for debugging
+  userName?: string; // User's name for title display
+  openai?: OpenAI;
   logoPath?: string;
 };
 
@@ -37,7 +40,7 @@ export type VisionBoardResultWithTemplate = VisionBoardResult & {
 };
 
 /**
- * Main orchestrator function
+ * Main orchestrator function - A4 Lambda Version
  */
 export async function composeVisionBoardFromGoals(
   options: GenerateVisionBoardOptions
@@ -47,28 +50,75 @@ export async function composeVisionBoardFromGoals(
     vibe,
     imageProvider,
     layoutTemplate,
-    // A4 aspect ratio for dense tiling (Pinterest-style but portrait)
-    // A4: 8.27 x 11.69 inches
-    // At 300 DPI: 2480 x 3508 pixels
-    // For web, use 1654 x 2339 (scaled down)
-    canvasSize = { width: 1654, height: 2339 },
-    backgroundColor = "#F6F4F0",
+    userName,
+    canvasSize,
+    backgroundColor,
     openai,
     logoPath,
   } = options;
+  
+  // ==========================================================================
+  // STEP 1: DETERMINE LAYOUT AND CANVAS SIZE
+  // ==========================================================================
+  
+  const validGoals = goals.filter((g) => g.trim() !== "");
+  const numGoals = Math.max(2, Math.min(7, validGoals.length)); // Clamp to 2-7 for A4 layout
+  
+  console.log(`🎯 [ORCHESTRATOR] Processing ${validGoals.length} goals (using ${numGoals} for layout)`);
+  
+  // Default to polaroid_stack template
+  const template = layoutTemplate || "polaroid_stack";
+  
+  // Determine canvas size and background color based on template
+  let finalCanvasSize: { width: number; height: number };
+  let finalBackgroundColor: string;
+  
+  if (template === "polaroid_stack") {
+    // Use A4 layout system for polaroid_stack
+    try {
+      const a4Layout = getA4Layout(numGoals);
+      finalCanvasSize = canvasSize || A4_CANVAS;
+      finalBackgroundColor = backgroundColor || a4Layout.outerBg;
+      
+      console.log(`📐 [ORCHESTRATOR] Using A4 layout for ${numGoals} goals`);
+      console.log(`   - Canvas: ${finalCanvasSize.width}x${finalCanvasSize.height}`);
+      console.log(`   - Background: ${finalBackgroundColor}`);
+    } catch (error) {
+      // Fallback if A4 layout fails
+      console.warn(`⚠️  [ORCHESTRATOR] A4 layout error, using fallback:`, error);
+      finalCanvasSize = canvasSize || A4_CANVAS;
+      finalBackgroundColor = backgroundColor || A4_OUTER_BG[numGoals as GoalCount] || "#0F3F3E";
+    }
+  } else {
+    // Legacy layout
+    finalCanvasSize = canvasSize || { width: 1654, height: 2339 };
+    finalBackgroundColor = backgroundColor || "#F6F4F0";
+  }
 
-  // 1. Select or use provided layout template
-  // Force scrapbook collage style
-  const template = "editorial_grid"; // Will generate scrapbook layout
-  const layoutSlots = generateLayout(template, canvasSize);
+  // Generate layout slots
+  const layoutSlots = generateLayout(template, finalCanvasSize, numGoals);
+  
+  // Validate: ensure we have exactly numGoals polaroid slots
+  const polaroidSlots = layoutSlots.filter(s => s.type === "polaroid" || (s.type === "image" && s.goalIndex !== undefined && s.kind !== "background"));
+  if (polaroidSlots.length !== numGoals) {
+    console.warn(`⚠️  [ORCHESTRATOR] Expected ${numGoals} polaroid slots, got ${polaroidSlots.length}`);
+  }
+  
+  console.log(`📐 [ORCHESTRATOR] Generated ${layoutSlots.length} layout slots (${polaroidSlots.length} polaroids)`);
 
-  // 2. Generate image search queries from goals using OpenAI
-  const userGoals: UserGoals = { goals, vibe };
+  // ==========================================================================
+  // STEP 2: GENERATE IMAGE SEARCH QUERIES
+  // ==========================================================================
+  
+  const userGoals: UserGoals = { goals: validGoals, vibe };
   console.log("🔍 [ORCHESTRATOR] Generating search queries...");
   const searchQueries = await generateImageSearchQueries(openai, userGoals);
   console.log(`✅ [ORCHESTRATOR] Generated ${searchQueries.length} search queries`);
 
-  // 3. Fetch images from provider with goal metadata
+  // ==========================================================================
+  // STEP 3: FETCH IMAGES FROM PROVIDER
+  // ==========================================================================
+  
   console.log("🖼️  [ORCHESTRATOR] Fetching images from provider...");
   const allImagesWithGoals = await imageProvider.searchImagesWithGoals(searchQueries);
   console.log(`✅ [ORCHESTRATOR] Fetched ${allImagesWithGoals.length} images with goal metadata`);
@@ -78,164 +128,147 @@ export async function composeVisionBoardFromGoals(
     throw new Error("No images found for the given goals");
   }
 
-  // 3a. Goal-balanced image selection (quota system)
-  const numImageSlots = layoutSlots.filter((s) => s.type === "image").length;
-  const targetImages = Math.min(numImageSlots, 25); // Target 18-25, but respect layout slots
-  const validGoals = goals.filter((g) => g.trim() !== "");
-  const numGoals = validGoals.length;
-
-  console.log(`📊 [ORCHESTRATOR] Goal-balanced selection:`);
-  console.log(`   - Target images: ${targetImages}`);
-  console.log(`   - Number of goals: ${numGoals}`);
-
+  // ==========================================================================
+  // STEP 4: SELECT BEST IMAGES (OpenAI ranking or fallback)
+  // ==========================================================================
+  
+  let selectedImages: ImageWithGoal[] = [];
+  let backgroundImage: ImageAsset | undefined;
+  
   // Group images by goal
   const imagesByGoal = new Map<number, ImageWithGoal[]>();
   for (const img of allImagesWithGoals) {
     const goalIdx = img.goalIndex;
-    if (goalIdx >= 0) {
+    if (goalIdx >= 0 && goalIdx < numGoals) {
       if (!imagesByGoal.has(goalIdx)) {
         imagesByGoal.set(goalIdx, []);
       }
       imagesByGoal.get(goalIdx)!.push(img);
     }
   }
-
-  // Sort images within each goal by relevance score (highest first)
-  for (const [goalIdx, images] of imagesByGoal.entries()) {
+  
+  // Sort images within each goal by relevance score
+  for (const [, images] of imagesByGoal.entries()) {
     images.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
   }
-
-  const DEBUG_VISION_BOARD = process.env.DEBUG_VISION_BOARD === "true";
-
-  if (DEBUG_VISION_BOARD || numGoals >= 2) {
-    console.log(`📋 [ORCHESTRATOR] Images available per goal:`);
+  
+  if (template === "polaroid_stack") {
+    console.log("🎯 [ORCHESTRATOR] Using OpenAI intent ranking for image selection...");
+    
+    // Prepare goals array for ranking
+    const goalsForRanking = validGoals.slice(0, numGoals).map((goalText, idx) => ({
+      id: `goal-${idx}`,
+      text: goalText,
+    }));
+    
+    // Prepare candidates
+    const allImagesSorted = [...allImagesWithGoals].sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
+    const backgroundCandidates = allImagesSorted.map(img => ({
+      id: img.id,
+      url: img.url,
+      photographer: img.photographer,
+      alt: img.alt,
+      width: img.width,
+      height: img.height,
+      avg_color: undefined,
+      src: {
+        large: img.url,
+        original: img.downloadUrl || img.url,
+      },
+    }));
+    
+    const goalCandidatesByGoal: Record<string, typeof backgroundCandidates> = {};
     for (let i = 0; i < numGoals; i++) {
+      const goalId = `goal-${i}`;
       const images = imagesByGoal.get(i) || [];
-      const goalText = validGoals[i] || `Goal ${i}`;
-      console.log(`   Goal ${i} ("${goalText}"): ${images.length} images`);
+      goalCandidatesByGoal[goalId] = images
+        .filter(img => img.id && img.url)
+        .map(img => ({
+          id: img.id!,
+          url: img.url!,
+          photographer: img.photographer,
+          alt: img.alt,
+          width: img.width || 0,
+          height: img.height || 0,
+          avg_color: undefined,
+          src: {
+            large: img.url!,
+            original: img.downloadUrl || img.url!,
+          },
+        }));
     }
-  }
-
-  // Calculate quotas (even split with minimum 20% per goal if >= 2 goals)
-  const quotas = new Map<number, number>();
-  if (numGoals >= 2) {
-    const evenSplit = Math.floor(targetImages / numGoals);
-    const minQuota = Math.floor(targetImages * 0.20); // 20% minimum
-    const baseQuota = Math.max(evenSplit, minQuota);
-
-    for (let i = 0; i < numGoals; i++) {
-      quotas.set(i, baseQuota);
-    }
-
-    // Distribute remaining slots
-    const totalQuota = baseQuota * numGoals;
-    let remaining = targetImages - totalQuota;
-    let goalIdx = 0;
-    while (remaining > 0 && goalIdx < numGoals) {
-      quotas.set(goalIdx, quotas.get(goalIdx)! + 1);
-      remaining--;
-      goalIdx = (goalIdx + 1) % numGoals;
-    }
-  } else {
-    // Single goal: use all available slots
-    quotas.set(0, targetImages);
-  }
-
-  if (DEBUG_VISION_BOARD || numGoals >= 2) {
-    console.log(`🎯 [ORCHESTRATOR] Quotas per goal:`);
-    for (let i = 0; i < numGoals; i++) {
-      const quota = quotas.get(i) || 0;
-      const goalText = validGoals[i] || `Goal ${i}`;
-      console.log(`   Goal ${i} ("${goalText}"): quota = ${quota}`);
-    }
-  }
-
-  // Two-pass selection
-  const selectedImages: ImageWithGoal[] = [];
-  const selectedByGoal = new Map<number, ImageWithGoal[]>();
-
-  // Pass 1: Fill each goal bucket up to its quota
-  for (let i = 0; i < numGoals; i++) {
-    const quota = quotas.get(i) || 0;
-    const available = imagesByGoal.get(i) || [];
-    const selected = available.slice(0, quota);
-    selectedByGoal.set(i, selected);
-    selectedImages.push(...selected);
-
-    if (DEBUG_VISION_BOARD || numGoals >= 2) {
-      const goalText = validGoals[i] || `Goal ${i}`;
-      if (selected.length < quota) {
-        console.log(`⚠️  [ORCHESTRATOR] Goal ${i} ("${goalText}") quota not met: ${selected.length}/${quota} (insufficient images)`);
-      }
-    }
-  }
-
-  // Pass 2: Redistribute if some goals couldn't meet quota
-  const totalSelected = selectedImages.length;
-  if (totalSelected < targetImages) {
-    const shortfall = targetImages - totalSelected;
-    const goalQuotas = Array.from(quotas.entries());
-    const goalAvailable = goalQuotas.map(([idx]) => {
-      const available = imagesByGoal.get(idx) || [];
-      const alreadySelected = selectedByGoal.get(idx) || [];
-      return {
-        goalIdx: idx,
-        availableCount: available.length,
-        alreadySelectedCount: alreadySelected.length,
-        remaining: available.length - alreadySelected.length,
-      };
-    });
-
-    // Find goals that can take more (without exceeding 70% max per goal)
-    const maxPerGoal = Math.floor(targetImages * 0.70);
-    const eligibleGoals = goalAvailable.filter(
-      (g) => g.remaining > 0 && (selectedByGoal.get(g.goalIdx)?.length || 0) < maxPerGoal
+    
+    // Call OpenAI ranking
+    const rankedSelection = await selectBestImagesWithOpenAI(
+      openai,
+      goalsForRanking,
+      backgroundCandidates,
+      goalCandidatesByGoal
     );
-
-    // Sort by remaining availability (descending)
-    eligibleGoals.sort((a, b) => b.remaining - a.remaining);
-
-    // Redistribute shortfall
-    let redistributed = 0;
-    for (const eligible of eligibleGoals) {
-      if (redistributed >= shortfall) break;
-
-      const currentCount = selectedByGoal.get(eligible.goalIdx)?.length || 0;
-      const maxAllowed = maxPerGoal - currentCount;
-      const toAdd = Math.min(eligible.remaining, maxAllowed, shortfall - redistributed);
-
-      if (toAdd > 0) {
-        const available = imagesByGoal.get(eligible.goalIdx) || [];
-        const alreadySelected = selectedByGoal.get(eligible.goalIdx) || [];
-        const alreadySelectedIds = new Set(alreadySelected.map((img) => img.id));
-        const newImages = available.filter((img) => !alreadySelectedIds.has(img.id)).slice(0, toAdd);
-
-        selectedByGoal.set(eligible.goalIdx, [...alreadySelected, ...newImages]);
-        selectedImages.push(...newImages);
-        redistributed += newImages.length;
-
-        if (DEBUG_VISION_BOARD) {
-          const goalText = validGoals[eligible.goalIdx] || `Goal ${eligible.goalIdx}`;
-          console.log(`🔄 [ORCHESTRATOR] Redistributed ${newImages.length} images to Goal ${eligible.goalIdx} ("${goalText}")`);
+    
+    console.log(`✅ [ORCHESTRATOR] OpenAI ranking complete`);
+    
+    // Map selections to images
+    const backgroundCandidate = allImagesWithGoals.find(img => img.id === rankedSelection.background.id);
+    if (backgroundCandidate) {
+      backgroundImage = {
+        id: backgroundCandidate.id,
+        url: backgroundCandidate.url,
+        width: backgroundCandidate.width,
+        height: backgroundCandidate.height,
+        photographer: backgroundCandidate.photographer,
+        source: backgroundCandidate.source,
+        downloadUrl: backgroundCandidate.downloadUrl,
+      };
+    }
+    
+    // Find goal images
+    for (const goalSelection of rankedSelection.goals) {
+      const goalId = goalSelection.goalId || "";
+      const goalIdx = parseInt(goalId.replace("goal-", ""));
+      
+      if (isNaN(goalIdx) || goalIdx < 0 || goalIdx >= numGoals) continue;
+      
+      const image = allImagesWithGoals.find(img => img.id === goalSelection.imageId);
+      if (image) {
+        selectedImages.push(image);
+      } else {
+        // Fallback: use first image for this goal
+        const goalImages = imagesByGoal.get(goalIdx) || [];
+        if (goalImages.length > 0) {
+          selectedImages.push(goalImages[0]);
         }
       }
     }
-  }
-
-  // Final selection summary
-  if (DEBUG_VISION_BOARD || numGoals >= 2) {
-    console.log(`✅ [ORCHESTRATOR] Final selection per goal:`);
+    
+    // Fill gaps if needed
     for (let i = 0; i < numGoals; i++) {
-      const selected = selectedByGoal.get(i) || [];
-      const quota = quotas.get(i) || 0;
-      const goalText = validGoals[i] || `Goal ${i}`;
-      const status = selected.length >= quota ? "✅" : "⚠️";
-      console.log(`   ${status} Goal ${i} ("${goalText}"): ${selected.length}/${quota} selected`);
+      const hasImage = selectedImages.some(img => img.goalIndex === i);
+      if (!hasImage) {
+        const goalImages = imagesByGoal.get(i) || [];
+        if (goalImages.length > 0) {
+          selectedImages.push(goalImages[0]);
+          console.log(`   - Added fallback for goal ${i}`);
+        }
+      }
     }
-    console.log(`📊 [ORCHESTRATOR] Total selected: ${selectedImages.length}/${targetImages}`);
+    
+    // Sort by goal index
+    selectedImages.sort((a, b) => a.goalIndex - b.goalIndex);
+    
+  } else {
+    // Legacy mode
+    console.log("📊 [ORCHESTRATOR] Using legacy selection...");
+    
+    for (let i = 0; i < numGoals; i++) {
+      const goalImages = imagesByGoal.get(i) || [];
+      if (goalImages.length > 0) {
+        selectedImages.push(goalImages[0]);
+      }
+    }
   }
 
-  // Convert ImageWithGoal[] to ImageAsset[] for canvas
+  // Convert to ImageAsset[]
   const allImages = selectedImages.map((img) => ({
     id: img.id,
     url: img.url,
@@ -246,52 +279,143 @@ export async function composeVisionBoardFromGoals(
     downloadUrl: img.downloadUrl,
   }));
 
-  console.log("📸 [ORCHESTRATOR] Selected images for composition:", allImages.slice(0, 3).map(img => ({
-    id: img.id,
-    source: img.source,
-    dimensions: `${img.width}x${img.height}`,
-  })));
+  console.log(`📸 [ORCHESTRATOR] Selected ${allImages.length} images for composition`);
 
-  // 4. Generate motivational text using OpenAI
-  console.log("✍️  [ORCHESTRATOR] Generating motivational text...");
+  // ==========================================================================
+  // STEP 5: GENERATE GOAL-SPECIFIC QUOTES
+  // ==========================================================================
+  
+  console.log("✍️  [ORCHESTRATOR] Generating goal-specific quotes...");
+  const goalQuotes = await generateGoalQuotes(openai, validGoals.slice(0, numGoals));
+  console.log(`✅ [ORCHESTRATOR] Generated ${goalQuotes.length} goal quotes`);
+
+  // ==========================================================================
+  // STEP 6: GENERATE GENERAL AFFIRMATIONS (optional, for floating cards)
+  // ==========================================================================
+  
+  console.log("✍️  [ORCHESTRATOR] Generating general affirmations...");
   const textBlocks = await generateMotivationalText(openai, userGoals);
-  console.log(`✅ [ORCHESTRATOR] Generated ${textBlocks.length} text blocks:`, textBlocks);
+  console.log(`✅ [ORCHESTRATOR] Generated ${textBlocks.length} affirmations`);
 
-  // 5. Load logo if provided
-  let logoBuffer: Buffer | undefined;
-  if (logoPath) {
-    try {
-      const logoSvgContent = (await readFile(logoPath)).toString();
-      // Replace orange fill colors with white
-      const whiteLogoContent = logoSvgContent
-        .replace(/#F77500/g, "#FFFFFF")
-        .replace(/#f77500/g, "#FFFFFF");
-      logoBuffer = Buffer.from(whiteLogoContent);
-    } catch (error) {
-      console.warn("Could not load logo:", error);
+  // ==========================================================================
+  // STEP 7: BUILD VISION BOARD ASSETS (stable mapping)
+  // ==========================================================================
+  
+  let visionBoardAssets: VisionBoardAssets | undefined;
+  
+  if (template === "polaroid_stack") {
+    console.log("🔗 [ORCHESTRATOR] Building VisionBoardAssets with stable mapping...");
+    
+    const cards: GoalCard[] = [];
+    for (let i = 0; i < numGoals; i++) {
+      const goalText = validGoals[i];
+      const quoteText = goalQuotes[i] || goalText;
+      const imageForGoal = selectedImages.find(img => img.goalIndex === i);
+      
+      if (imageForGoal) {
+        cards.push({
+          goalIndex: i,
+          goalText,
+          quoteText,
+          imageUrl: imageForGoal.url,
+          imageId: imageForGoal.id,
+          imageDownloadUrl: imageForGoal.downloadUrl,
+        });
+        console.log(`   ✅ Card ${i}: "${goalText.substring(0, 20)}..." -> "${quoteText.substring(0, 25)}..."`);
+      } else {
+        // Fallback
+        const fallbackImage = selectedImages[0] || allImagesWithGoals[0];
+        if (fallbackImage) {
+          cards.push({
+            goalIndex: i,
+            goalText,
+            quoteText,
+            imageUrl: fallbackImage.url,
+            imageId: fallbackImage.id,
+            imageDownloadUrl: fallbackImage.downloadUrl,
+          });
+          console.warn(`   ⚠️  Card ${i}: Using fallback image`);
+        }
+      }
     }
+    
+    cards.sort((a, b) => a.goalIndex - b.goalIndex);
+    
+    // Background URL (NOT used in A4 mode - we use solid colors instead)
+    const allImagesSorted = [...allImagesWithGoals].sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
+    const backgroundUrl = backgroundImage?.url || allImagesSorted[0]?.url || "";
+    const backgroundId = backgroundImage?.id || allImagesSorted[0]?.id;
+    const backgroundDownloadUrl = backgroundImage?.downloadUrl || allImagesSorted[0]?.downloadUrl;
+    
+    visionBoardAssets = {
+      backgroundUrl,
+      backgroundId,
+      backgroundDownloadUrl,
+      cards,
+    };
+    
+    console.log(`✅ [ORCHESTRATOR] Built VisionBoardAssets: ${cards.length} cards`);
   }
 
-  // 6. Compose canvas
+  // ==========================================================================
+  // STEP 8: LOAD LOGO (PNG for Lambda compatibility)
+  // ==========================================================================
+  
+  let logoBuffer: Buffer | undefined;
+  
+  // Try multiple logo paths, preferring PNG
+  const logoPaths = [
+    logoPath,
+    join(process.cwd(), "public", "rank-logo-white.png"), // PNG preferred for Lambda
+    join(process.cwd(), "public", "rank-logo-white.svg"), // Fallback to SVG
+    join(process.cwd(), "assets", "rank-logo.png"),
+  ].filter(Boolean) as string[];
+  
+  for (const path of logoPaths) {
+    try {
+      logoBuffer = await readFile(path);
+      console.log(`✅ [ORCHESTRATOR] Loaded logo from ${path}`);
+      break;
+    } catch {
+      continue;
+    }
+  }
+  
+  if (!logoBuffer) {
+    console.warn("⚠️  [ORCHESTRATOR] Could not load logo from any path");
+  }
+
+  // ==========================================================================
+  // STEP 9: COMPOSE CANVAS
+  // ==========================================================================
+  
   const canvasConfig: CanvasConfig = {
-    width: canvasSize.width,
-    height: canvasSize.height,
-    backgroundColor,
+    width: finalCanvasSize.width,
+    height: finalCanvasSize.height,
+    backgroundColor: finalBackgroundColor,
+    userName: userName || undefined,
   };
 
+  console.log("🎨 [ORCHESTRATOR] Starting canvas composition...");
+  
   const composition = await composeCanvas(
     canvasConfig,
     layoutSlots,
     allImages,
     textBlocks,
-    logoBuffer
+    logoBuffer,
+    backgroundImage, // Not used in A4 mode (solid color background)
+    goalQuotes,
+    visionBoardAssets
   );
+
+  console.log(`✅ [ORCHESTRATOR] Vision board complete: ${composition.width}x${composition.height}`);
 
   return {
     imageBuffer: composition.imageBuffer,
     width: composition.width,
     height: composition.height,
-    imagesUsed: allImages, // Already balanced and trimmed to targetImages
+    imagesUsed: allImages,
     textBlocks,
     layoutTemplate: template,
   };

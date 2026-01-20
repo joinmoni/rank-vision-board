@@ -8,4 +8,7 @@ export const LAMBDA_FUNCTION_URL =
 export const USE_LOCAL_GENERATION = false;
 export const GENERATE_ROUTE = "/api/generate";
 
+// For local testing: set to true to call Lambda directly (bypass QStash)
+export const USE_DIRECT_LAMBDA_CALL = process.env.USE_DIRECT_LAMBDA_CALL === "true" || false;
+
 

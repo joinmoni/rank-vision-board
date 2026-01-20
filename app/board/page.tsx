@@ -127,7 +127,7 @@ export default function BoardPage() {
           <div className="flex items-center gap-2 mb-6">
             <Link href="/">
               <Image
-                src="/rank-logo.svg"
+                src="/rank-logo-black.svg"
                 alt="Rank Logo"
                 width={120}
                 height={35}
@@ -177,7 +177,7 @@ export default function BoardPage() {
           <div className="flex items-center gap-2 mb-10">
             <Link href="/">
               <Image
-                src="/rank-logo.svg"
+                src="/rank-logo-black.svg"
                 alt="Rank Logo"
                 width={120}
                 height={35}

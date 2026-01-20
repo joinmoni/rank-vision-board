@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     const imageProvider = new PexelsProvider(PEXELS_API_KEY);
 
     // Load logo
-    const logoPath = join(process.cwd(), "public", "rank-logo.svg");
+    const logoPath = join(process.cwd(), "public", "rank-logo-white.png");
 
     // Generate vision board
     console.log(`🎨 [GENERATE-LOCAL] Starting composition...`);
