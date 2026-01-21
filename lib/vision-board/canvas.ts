@@ -678,4 +678,4 @@ async function preparePolaroidComposites(
 // EXPORTS FOR BACKWARDS COMPATIBILITY
 // =============================================================================
 
-export { CanvasConfig };
+// CanvasConfig is already exported above, no need to re-export
