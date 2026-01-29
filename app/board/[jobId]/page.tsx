@@ -208,7 +208,7 @@ export default function BoardPageByJobId() {
           <div className="hidden lg:flex lg:w-1/2 bg-[#3E0000] flex-col justify-center px-8 md:px-16 lg:px-24 py-12 relative">
             {/* White Logo overlay on maroon background (Desktop only) */}
             <div className="absolute top-8 left-8 z-10">
-              <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer">
+              <Link href="https://rankvisionboard.framer.website/">
                 <Image
                   src="/rank-logo-white.svg"
                   alt="Rank Logo"
@@ -276,7 +276,7 @@ export default function BoardPageByJobId() {
             <div className="px-6 pt-6 pb-8">
               {/* Logo */}
               <div className="mb-8">
-                <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <Link href="https://rankvisionboard.framer.website/" className="flex items-center gap-2">
                   <Image
                     src="/rank-logo-black.svg"
                     alt="Rank Logo"
@@ -354,7 +354,7 @@ export default function BoardPageByJobId() {
             <div className="w-1/2 bg-[#3E0000] flex flex-col justify-center px-16 lg:px-24 py-12 relative">
               {/* White Logo overlay on maroon background (Desktop only) */}
               <div className="absolute top-8 left-8 z-10">
-                <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer">
+                <Link href="https://rankvisionboard.framer.website/">
                   <Image
                     src="/rank-logo-white.svg"
                     alt="Rank Logo"

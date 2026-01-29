@@ -131,7 +131,7 @@ export default function CreatePage() {
         <div className="lg:w-1/2 p-8 md:p-16 lg:p-20 overflow-y-auto max-h-screen custom-scroll">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-10">
-            <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer">
+            <Link href="https://rankvisionboard.framer.website/">
               <Image
                 src="/rank-logo-black.svg"
                 alt="Rank Logo"

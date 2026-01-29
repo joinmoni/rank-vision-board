@@ -125,7 +125,7 @@ export default function BoardPage() {
         <div className="max-w-[450px] mx-auto px-6 pt-10 pb-12">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-6">
-            <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer">
+            <Link href="https://rankvisionboard.framer.website/">
               <Image
                 src="/rank-logo-black.svg"
                 alt="Rank Logo"
@@ -175,7 +175,7 @@ export default function BoardPage() {
         <div className="max-w-7xl mx-auto w-full px-12 py-12">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-10">
-            <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer">
+            <Link href="https://rankvisionboard.framer.website/">
               <Image
                 src="/rank-logo-black.svg"
                 alt="Rank Logo"

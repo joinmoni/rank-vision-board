@@ -73,7 +73,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-black antialiased">
       <nav className="p-8 pb-4 lg:pb-6">
-        <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+        <Link href="https://rankvisionboard.framer.website/" className="flex items-center gap-2">
           <Image
             src="/rank-logo-black.svg"
             alt="Rank Logo"
