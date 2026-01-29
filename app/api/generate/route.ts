@@ -25,7 +25,7 @@ function getQStashClient() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { goals, email, name, gender } = body;
+    const { goals, email, name, rankTag, gender } = body;
 
     if (!goals || !Array.isArray(goals) || goals.length === 0) {
       return NextResponse.json(
@@ -34,12 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Filter out empty goals
+    // Filter out empty goals; require minimum 5
     const validGoals = goals.filter((goal: string) => goal.trim() !== "");
+    const MIN_GOALS = 5;
 
-    if (validGoals.length === 0) {
+    if (validGoals.length < MIN_GOALS) {
       return NextResponse.json(
-        { error: "At least one valid goal is required" },
+        { error: `At least ${MIN_GOALS} goals are required` },
         { status: 400 }
       );
     }
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
       .insert({
         email: email || null,
         name: name || null,
+        rank_tag: rankTag?.trim() || null,
         goals: validGoals,
         status: "pending",
       })
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
             goals: validGoals,
             email: email || null,
             name: name || null,
+            rankTag: rankTag?.trim() || null,
             gender: gender || null,
           }),
         });
@@ -137,6 +140,7 @@ export async function POST(request: NextRequest) {
           goals: validGoals,
           email: email || null,
           name: name || null,
+          rankTag: rankTag?.trim() || null,
           gender: gender || null,
         },
       });

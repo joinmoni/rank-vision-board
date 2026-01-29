@@ -66,8 +66,8 @@ export async function composeVisionBoardFromGoals(
   
   console.log(`🎯 [ORCHESTRATOR] Processing ${validGoals.length} goals (using ${numGoals} for layout)`);
   
-  // Default to polaroid_stack template
-  const template = layoutTemplate || "polaroid_stack";
+  // Use editorial_grid as default (masonry + text overlays)
+  const template = layoutTemplate || "editorial_grid";
   
   // Determine canvas size and background color based on template
   let finalCanvasSize: { width: number; height: number };
@@ -90,21 +90,25 @@ export async function composeVisionBoardFromGoals(
       finalBackgroundColor = backgroundColor || A4_OUTER_BG[numGoals as GoalCount] || "#0F3F3E";
     }
   } else {
-    // Legacy layout
+    // editorial_grid (and other legacy layouts): masonry + text slots
     finalCanvasSize = canvasSize || { width: 1654, height: 2339 };
     finalBackgroundColor = backgroundColor || "#F6F4F0";
+    console.log(`📐 [ORCHESTRATOR] Using editorial_grid layout`);
+    console.log(`   - Canvas: ${finalCanvasSize.width}x${finalCanvasSize.height}`);
   }
 
   // Generate layout slots
   const layoutSlots = generateLayout(template, finalCanvasSize, numGoals);
   
-  // Validate: ensure we have exactly numGoals polaroid slots
   const polaroidSlots = layoutSlots.filter(s => s.type === "polaroid" || (s.type === "image" && s.goalIndex !== undefined && s.kind !== "background"));
-  if (polaroidSlots.length !== numGoals) {
+  const textSlots = layoutSlots.filter(s => s.type === "text");
+  const imageSlots = layoutSlots.filter(s => s.type === "image" && s.kind !== "background");
+  
+  if (template === "polaroid_stack" && polaroidSlots.length !== numGoals) {
     console.warn(`⚠️  [ORCHESTRATOR] Expected ${numGoals} polaroid slots, got ${polaroidSlots.length}`);
   }
   
-  console.log(`📐 [ORCHESTRATOR] Generated ${layoutSlots.length} layout slots (${polaroidSlots.length} polaroids)`);
+  console.log(`📐 [ORCHESTRATOR] Generated ${layoutSlots.length} layout slots (${imageSlots.length} images, ${textSlots.length} text, ${polaroidSlots.length} polaroids)`);
 
   // ==========================================================================
   // STEP 2: GENERATE IMAGE SEARCH QUERIES
@@ -152,7 +156,13 @@ export async function composeVisionBoardFromGoals(
     images.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
   }
   
-  if (template === "polaroid_stack") {
+  if (template === "editorial_grid") {
+    // Editorial grid: select up to 30 images (by relevance), no background image
+    const maxImages = Math.min(30, imageSlots.length, allImagesWithGoals.length);
+    const sortedByRelevance = [...allImagesWithGoals].sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
+    selectedImages = sortedByRelevance.slice(0, maxImages).map((img, idx) => ({ ...img, goalIndex: idx }));
+    console.log(`📸 [ORCHESTRATOR] Selected ${selectedImages.length} images for editorial grid`);
+  } else if (template === "polaroid_stack") {
     console.log("🎯 [ORCHESTRATOR] Using OpenAI intent ranking for image selection...");
     
     // Prepare goals array for ranking
@@ -282,20 +292,26 @@ export async function composeVisionBoardFromGoals(
   console.log(`📸 [ORCHESTRATOR] Selected ${allImages.length} images for composition`);
 
   // ==========================================================================
-  // STEP 5: GENERATE GOAL-SPECIFIC QUOTES
+  // STEP 5 & 6: GENERATE TEXT FOR BOARD (editorial = affirmations only; polaroid = quotes + affirmations)
   // ==========================================================================
   
-  console.log("✍️  [ORCHESTRATOR] Generating goal-specific quotes...");
-  const goalQuotes = await generateGoalQuotes(openai, validGoals.slice(0, numGoals));
-  console.log(`✅ [ORCHESTRATOR] Generated ${goalQuotes.length} goal quotes`);
+  let goalQuotes: string[] = [];
+  let textBlocks: TextBlock[];
 
-  // ==========================================================================
-  // STEP 6: GENERATE GENERAL AFFIRMATIONS (optional, for floating cards)
-  // ==========================================================================
-  
-  console.log("✍️  [ORCHESTRATOR] Generating general affirmations...");
-  const textBlocks = await generateMotivationalText(openai, userGoals);
-  console.log(`✅ [ORCHESTRATOR] Generated ${textBlocks.length} affirmations`);
+  if (template === "editorial_grid") {
+    // Editorial grid: only affirmations for text overlays (no polaroid, so no goal quotes)
+    console.log("✍️  [ORCHESTRATOR] Generating affirmations for editorial grid...");
+    textBlocks = await generateMotivationalText(openai, userGoals);
+    console.log(`✅ [ORCHESTRATOR] Generated ${textBlocks.length} affirmations`);
+  } else {
+    // Polaroid stack: goal quotes + affirmations (not used for current Lambda default)
+    console.log("✍️  [ORCHESTRATOR] Generating goal quotes and affirmations...");
+    [goalQuotes, textBlocks] = await Promise.all([
+      generateGoalQuotes(openai, validGoals.slice(0, numGoals)),
+      generateMotivationalText(openai, userGoals),
+    ]);
+    console.log(`✅ [ORCHESTRATOR] Generated ${goalQuotes.length} goal quotes, ${textBlocks.length} affirmations`);
+  }
 
   // ==========================================================================
   // STEP 7: BUILD VISION BOARD ASSETS (stable mapping)
@@ -363,11 +379,15 @@ export async function composeVisionBoardFromGoals(
   
   let logoBuffer: Buffer | undefined;
   
-  // Try multiple logo paths, preferring PNG
+  // Editorial grid has light background → use black logo; polaroid has colored frame → use white logo
   const logoPaths = [
     logoPath,
-    join(process.cwd(), "public", "rank-logo-white.png"), // PNG preferred for Lambda
-    join(process.cwd(), "public", "rank-logo-white.svg"), // Fallback to SVG
+    template === "editorial_grid"
+      ? join(process.cwd(), "public", "rank-logo-black.png")
+      : join(process.cwd(), "public", "rank-logo-white.png"),
+    template === "editorial_grid"
+      ? join(process.cwd(), "public", "rank-logo-black.svg")
+      : join(process.cwd(), "public", "rank-logo-white.svg"),
     join(process.cwd(), "assets", "rank-logo.png"),
   ].filter(Boolean) as string[];
   

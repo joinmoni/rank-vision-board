@@ -2,39 +2,78 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Images array - image-14 in center, others left to right
-  const images = [
+  const [images, setImages] = useState<string[]>([
     "/image-11.gif",
     "/image-12.gif",
     "/image-13.gif",
     "/image-14.gif", // Center image
     "/image-15.gif",
     "/image-16.gif",
-    "/image-17.png", // No .gif version available
-  ];
+    // image-17.png excluded on mobile - will be added on desktop
+  ]);
+
+  // Detect mobile and filter images accordingly
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 1024; // lg breakpoint
+      if (isMobile) {
+        // Mobile: exclude image-17.png
+        setImages([
+          "/image-11.gif",
+          "/image-12.gif",
+          "/image-13.gif",
+          "/image-14.gif",
+          "/image-15.gif",
+          "/image-16.gif",
+        ]);
+      } else {
+        // Desktop: include all images
+        setImages([
+          "/image-11.gif",
+          "/image-12.gif",
+          "/image-13.gif",
+          "/image-14.gif",
+          "/image-15.gif",
+          "/image-16.gif",
+          "/image-17.png",
+        ]);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Scroll to center on mobile mount (image-14)
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const centerImage = container.querySelector('[data-image="image-14"]') as HTMLElement;
-      if (centerImage) {
-        // Calculate scroll position to center image-14
-        const scrollLeft = centerImage.offsetLeft - (container.offsetWidth - centerImage.offsetWidth) / 2;
-        container.scrollTo({ left: scrollLeft, behavior: "auto" });
+      const isMobile = window.innerWidth < 1024;
+      
+      if (isMobile) {
+        // Wait for images to load and layout to settle
+        const timer = setTimeout(() => {
+          const centerImage = container.querySelector('[data-image="image-14"]') as HTMLElement;
+          if (centerImage) {
+            // Calculate scroll position to center image-14
+            const scrollLeft = centerImage.offsetLeft - (container.offsetWidth - centerImage.offsetWidth) / 2;
+            container.scrollTo({ left: scrollLeft, behavior: "auto" });
+          }
+        }, 150);
+        return () => clearTimeout(timer);
       }
     }
-  }, []);
+  }, [images]);
 
   return (
     <div className="min-h-screen bg-white text-black antialiased">
       <nav className="p-8 pb-4 lg:pb-6">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
           <Image
             src="/rank-logo-black.svg"
             alt="Rank Logo"

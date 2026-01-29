@@ -167,8 +167,9 @@ export async function composeVisionBoard(
   
   const { width, height, backgroundColor } = config;
   const isA4Mode = width === A4_CANVAS.width && height === A4_CANVAS.height;
+  const isEditorialGrid = layoutSlots.some((s) => s.type === "text");
   
-  console.log(`📐 [CANVAS] A4 mode: ${isA4Mode ? "YES" : "NO"}`);
+  console.log(`📐 [CANVAS] A4 mode: ${isA4Mode ? "YES" : "NO"}, Editorial grid: ${isEditorialGrid ? "YES" : "NO"}`);
 
   // Create base canvas with outer background color
   let canvas = sharp({
@@ -183,10 +184,10 @@ export async function composeVisionBoard(
   const allComposites: sharp.OverlayOptions[] = [];
 
   // ==========================================================================
-  // STEP 1: RENDER INNER BOARD RECTANGLE (A4 mode only)
+  // STEP 1: RENDER INNER BOARD RECTANGLE (A4 polaroid only, not editorial grid)
   // ==========================================================================
   
-  if (isA4Mode) {
+  if (isA4Mode && !isEditorialGrid) {
     const innerRect = getA4InnerBoardRect();
     console.log(`📐 [CANVAS] Inner board: ${innerRect.innerW}x${innerRect.innerH} at (${innerRect.innerX}, ${innerRect.innerY})`);
     
@@ -215,10 +216,10 @@ export async function composeVisionBoard(
   }
 
   // ==========================================================================
-  // STEP 2: RENDER TITLE TEXT (A4 mode with userName)
+  // STEP 2: RENDER TITLE TEXT (A4 polaroid with userName, not editorial grid)
   // ==========================================================================
   
-  if (isA4Mode && config.userName) {
+  if (isA4Mode && !isEditorialGrid && config.userName) {
     const titleText = `${config.userName}'s Vision Board`;
     const titleFontSize = 72;
     const titleX = A4_FRAME.outerPadX;
@@ -228,7 +229,7 @@ export async function composeVisionBoard(
     let titleBuffer: Buffer;
     
     try {
-      // Try to load Dazzed Bold font
+      // Use only Dazzed for all text on the board
       const fontPaths = [
         join(process.cwd(), "public", "Dazzed", "Dazzed-TRIAL-Bold.ttf"),
         join(process.cwd(), "public", "Dazzed", "Dazzed-TRIAL-SemiBold.ttf"),
@@ -243,7 +244,7 @@ export async function composeVisionBoard(
             fontBuffer.byteOffset + fontBuffer.byteLength
           );
           font = opentype.parse(arrayBuffer);
-          console.log(`✅ [CANVAS] Loaded title font: ${fontPath}`);
+          console.log(`✅ [CANVAS] Loaded title font (Dazzed): ${fontPath}`);
           break;
         } catch {
           continue;
@@ -280,8 +281,8 @@ export async function composeVisionBoard(
           <text 
             x="${titleX}" 
             y="${titleY}" 
-            font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" 
-            font-size="${titleFontSize}" 
+font-family="Dazzed, sans-serif"
+            font-size="${titleFontSize}"
             font-weight="700" 
             fill="#FFFFFF">
             ${escapeXmlForSvg(titleText)}
@@ -301,38 +302,47 @@ export async function composeVisionBoard(
   }
 
   // ==========================================================================
-  // STEP 3: RENDER POLAROID CARDS
+  // STEP 3: RENDER EDITORIAL GRID (current Lambda path) — polaroid path is skipped
   // ==========================================================================
   
-  const polaroidSlots = layoutSlots.filter(
-    (slot) => slot.type === "polaroid" || (slot.type === "image" && slot.goalIndex !== undefined && slot.kind !== "background")
-  );
-  
-  console.log(`📸 [CANVAS] Rendering ${polaroidSlots.length} polaroid cards...`);
-  
-  if (visionBoardAssets && visionBoardAssets.cards.length > 0) {
-    // Use VisionBoardAssets with stable mapping
-    const polaroidComposites = await preparePolaroidCardComposites(
-      polaroidSlots,
-      visionBoardAssets.cards,
-      width,
-      height,
-      isA4Mode
-    );
-    allComposites.push(...polaroidComposites);
-    console.log(`✅ [CANVAS] Added ${polaroidComposites.length} polaroid composites`);
-  } else if (goalQuotes && goalQuotes.length > 0) {
-    // Legacy: fallback to old method
-    const polaroidComposites = await preparePolaroidComposites(
-      polaroidSlots,
+  if (isEditorialGrid) {
+    const editorialComposites = await prepareEditorialGridComposites(
+      layoutSlots,
       images,
-      goalQuotes,
+      textBlocks,
       width,
-      height,
-      isA4Mode
+      height
     );
-    allComposites.push(...polaroidComposites);
-    console.log(`✅ [CANVAS] Added ${polaroidComposites.length} polaroid composites (legacy mode)`);
+    allComposites.push(...editorialComposites);
+    console.log(`✅ [CANVAS] Added ${editorialComposites.length} editorial grid composites`);
+  } else {
+    const polaroidSlots = layoutSlots.filter(
+      (slot) => slot.type === "polaroid" || (slot.type === "image" && slot.goalIndex !== undefined && slot.kind !== "background")
+    );
+    console.log(`📸 [CANVAS] Rendering ${polaroidSlots.length} polaroid cards...`);
+    
+    if (visionBoardAssets && visionBoardAssets.cards.length > 0) {
+      const polaroidComposites = await preparePolaroidCardComposites(
+        polaroidSlots,
+        visionBoardAssets.cards,
+        width,
+        height,
+        isA4Mode
+      );
+      allComposites.push(...polaroidComposites);
+      console.log(`✅ [CANVAS] Added ${polaroidComposites.length} polaroid composites`);
+    } else if (goalQuotes && goalQuotes.length > 0) {
+      const polaroidComposites = await preparePolaroidComposites(
+        polaroidSlots,
+        images,
+        goalQuotes,
+        width,
+        height,
+        isA4Mode
+      );
+      allComposites.push(...polaroidComposites);
+      console.log(`✅ [CANVAS] Added ${polaroidComposites.length} polaroid composites (legacy mode)`);
+    }
   }
 
   // ==========================================================================
@@ -362,25 +372,24 @@ export async function composeVisionBoard(
       const logoW = logoMeta.width || logoSize;
       const logoH = logoMeta.height || logoSize;
       
-      if (isA4Mode) {
-        // Bottom-right positioning for A4
-        const logoX = width - A4_FRAME.outerPadX - logoW;
-        const logoY = height - 80 - logoH; // 80px from bottom
-        
-        allComposites.push({
-          input: logoInput,
-          top: logoY,
-          left: logoX,
-        });
-        console.log(`✅ [CANVAS] Added logo at bottom-right (${logoX}, ${logoY})`);
-      } else {
-        // Top-left for non-A4
+      if (isEditorialGrid || !isA4Mode) {
+        // Editorial grid and non-A4: logo top-left
         allComposites.push({
           input: logoInput,
           top: Math.round(width * 0.02),
           left: Math.round(width * 0.02),
         });
         console.log("✅ [CANVAS] Added logo at top-left");
+      } else {
+        // A4 polaroid: bottom-right
+        const logoX = width - A4_FRAME.outerPadX - logoW;
+        const logoY = height - 80 - logoH;
+        allComposites.push({
+          input: logoInput,
+          top: logoY,
+          left: logoX,
+        });
+        console.log(`✅ [CANVAS] Added logo at bottom-right (${logoX}, ${logoY})`);
       }
     } catch (error) {
       console.error("❌ [CANVAS] Failed to process logo:", error);
@@ -410,6 +419,80 @@ export async function composeVisionBoard(
     width,
     height,
   };
+}
+
+// =============================================================================
+// EDITORIAL GRID RENDERING (masonry images + text with solid colored backgrounds)
+// =============================================================================
+
+/** Solid background colors for text boxes (no glassmorphism) */
+const TEXT_BG_PALETTE = ["#F5E6D3", "#E8D5E0", "#D4E5E0", "#F0E6D3"]; // beige, lavender, sage, cream
+
+/** Max concurrent image fetches+resizes to avoid memory spikes on Lambda */
+const EDITORIAL_IMAGE_BATCH_SIZE = 8;
+
+/**
+ * Prepare composites for editorial_grid: masonry image slots + text slots with solid colored backgrounds.
+ * Uses parallel batches for images and parallel text rendering for speed.
+ */
+async function prepareEditorialGridComposites(
+  layoutSlots: LayoutSlot[],
+  images: ImageAsset[],
+  textBlocks: TextBlock[],
+  _canvasWidth: number,
+  _canvasHeight: number
+): Promise<sharp.OverlayOptions[]> {
+  const imageSlots = layoutSlots.filter((s) => s.type === "image").sort((a, b) => a.y - b.y || a.x - b.x);
+  const textSlots = layoutSlots.filter((s) => s.type === "text");
+
+  // 1. Image slots: process in parallel batches (natural colors; center crop is faster than entropy)
+  const imageComposites: sharp.OverlayOptions[] = [];
+  for (let b = 0; b < imageSlots.length; b += EDITORIAL_IMAGE_BATCH_SIZE) {
+    const batch = imageSlots.slice(b, b + EDITORIAL_IMAGE_BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async (slot, bi) => {
+        const i = b + bi;
+        const image = images[i];
+        if (!image || !slot.width || !slot.height) return null;
+        try {
+          const url = image.downloadUrl || image.url;
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          const buf = Buffer.from(await res.arrayBuffer());
+          const resized = await sharp(buf)
+            .resize(Math.round(slot.width), Math.round(slot.height), { fit: "cover", position: "center" })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          return { input: resized, left: Math.round(slot.x), top: Math.round(slot.y) } as sharp.OverlayOptions;
+        } catch {
+          return null;
+        }
+      })
+    );
+    imageComposites.push(...results.filter((r): r is sharp.OverlayOptions => r !== null));
+  }
+
+  // 2. Text slots: render all in parallel (solid colored backgrounds)
+  const textComposites = await Promise.all(
+    textSlots.map(async (slot, i) => {
+      const text = textBlocks[i]?.text?.trim() || "";
+      if (!text || !slot.width) return null;
+      const slotW = Math.round(slot.width);
+      const slotH = Math.max(Math.round(slot.height || 72), 48);
+      const bgColor = TEXT_BG_PALETTE[i % TEXT_BG_PALETTE.length];
+      const fontSize = Math.min(28, Math.max(14, Math.floor(slotH * 0.35)));
+      const textSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${slotW}" height="${slotH}" viewBox="0 0 ${slotW} ${slotH}">
+        <rect x="0" y="0" width="${slotW}" height="${slotH}" rx="8" fill="${bgColor}"/>
+        <text x="${slotW / 2}" y="${slotH / 2}" font-family="Dazzed, sans-serif" font-size="${fontSize}" fill="#1a1a1a" text-anchor="middle" dominant-baseline="middle">${escapeXmlForSvg(text)}</text>
+      </svg>
+    `.trim();
+      const textBuffer = await sharp(Buffer.from(textSvg)).png().toBuffer();
+      return { input: textBuffer, left: Math.round(slot.x), top: Math.round(slot.y) } as sharp.OverlayOptions;
+    })
+  );
+
+  return [...imageComposites, ...textComposites.filter((r): r is sharp.OverlayOptions => r !== null)];
 }
 
 // =============================================================================
@@ -448,7 +531,7 @@ async function buildPolaroidCard(params: {
   const photoBuffer = await sharp(imageBuffer)
     .resize(photoSize, photoSize, {
       fit: "cover",
-      position: "entropy",
+      position: "center",
       withoutEnlargement: false,
     })
     .jpeg({ quality: 90 })
@@ -491,16 +574,16 @@ async function buildPolaroidCard(params: {
       <!-- Card background with shadow -->
       <rect x="0" y="0" width="${cardW}" height="${cardH}" rx="${radius}" fill="#FFFFFF" filter="url(#shadow)"/>
       
-      <!-- Photo -->
+      <!-- Photo (natural colors, no filters) -->
       <g clip-path="url(#photoClip)">
         <image href="${photoDataUri}" x="${innerPad}" y="${photoTop}" width="${photoSize}" height="${photoSize}" preserveAspectRatio="xMidYMid slice"/>
       </g>
       
-      <!-- Caption -->
+      <!-- Caption on white card (no sepia/overlay; card background is already white) -->
       <text 
         x="${captionX}" 
         y="${captionY}"
-        font-family="Georgia, 'Times New Roman', serif"
+        font-family="Dazzed, sans-serif"
         font-size="${fontSize}"
         font-weight="500"
         fill="#111111"
@@ -525,8 +608,12 @@ async function buildPolaroidCard(params: {
   return polaroidBuffer;
 }
 
+/** Max concurrent polaroid cards (fetch + build) to balance speed vs Lambda memory */
+const POLAROID_BATCH_SIZE = 4;
+
 /**
- * Prepare polaroid card composites with stable goal-to-image-to-quote mapping
+ * Prepare polaroid card composites with stable goal-to-image-to-quote mapping.
+ * Processes cards in parallel batches for faster Lambda execution.
  */
 async function preparePolaroidCardComposites(
   polaroidSlots: LayoutSlot[],
@@ -535,70 +622,42 @@ async function preparePolaroidCardComposites(
   canvasHeight: number,
   isA4Mode: boolean
 ): Promise<sharp.OverlayOptions[]> {
-  const composites: sharp.OverlayOptions[] = [];
   const margin = isA4Mode ? 40 : 90;
-
-  // Sort cards by goalIndex
   const sortedCards = [...cards].sort((a, b) => a.goalIndex - b.goalIndex);
-
-  // Sort slots by zIndex for proper layering
   const sortedSlots = [...polaroidSlots].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
 
-  for (const slot of sortedSlots) {
-    // Find matching card by goalIndex
-    let card: GoalCard | undefined;
-    if (slot.goalIndex !== undefined && slot.goalIndex >= 0) {
-      card = sortedCards.find(c => c.goalIndex === slot.goalIndex);
-    }
-    
-    if (!card) {
-      console.warn(`⚠️  [CANVAS] No card found for slot goalIndex ${slot.goalIndex}, skipping`);
-      continue;
-    }
-
-    try {
-      // Download image
-      const imageResponse = await fetch(card.imageDownloadUrl || card.imageUrl);
-      if (!imageResponse.ok) {
-        console.warn(`❌ [CANVAS] Failed to download image ${card.imageId}`);
-        continue;
-      }
-
-      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-      
-      // Build polaroid card
-      const polaroidBuffer = await buildPolaroidCard({
-        imageBuffer,
-        caption: card.quoteText || "",
-        cardW: Math.round(slot.width),
-        cardH: Math.round(slot.height),
-        rotation: slot.rotation || 0,
-      });
-      
-      // Get rotated dimensions
-      const polaroidMeta = await sharp(polaroidBuffer).metadata();
-      const rotatedW = polaroidMeta.width || slot.width;
-      const rotatedH = polaroidMeta.height || slot.height;
-
-      // Calculate position (slot.x/y are already in absolute coordinates)
-      let leftPos = Math.round(slot.x);
-      let topPos = Math.round(slot.y);
-      
-      // Clamp to canvas bounds (with margin for rotation)
-      leftPos = clamp(leftPos, margin, canvasWidth - rotatedW - margin);
-      topPos = clamp(topPos, margin, canvasHeight - rotatedH - margin);
-
-      composites.push({
-        input: polaroidBuffer,
-        left: leftPos,
-        top: topPos,
-      });
-      
-      console.log(`✅ [CANVAS] Polaroid goal ${card.goalIndex}: "${card.quoteText.substring(0, 25)}..." at (${leftPos}, ${topPos})`);
-    } catch (error) {
-      console.error(`❌ [CANVAS] Error processing polaroid for goal ${card.goalIndex}:`, error);
-      continue;
-    }
+  const composites: sharp.OverlayOptions[] = [];
+  for (let b = 0; b < sortedSlots.length; b += POLAROID_BATCH_SIZE) {
+    const batch = sortedSlots.slice(b, b + POLAROID_BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async (slot) => {
+        const card = slot.goalIndex !== undefined && slot.goalIndex >= 0
+          ? sortedCards.find(c => c.goalIndex === slot.goalIndex)
+          : undefined;
+        if (!card) return null;
+        try {
+          const imageResponse = await fetch(card.imageDownloadUrl || card.imageUrl);
+          if (!imageResponse.ok) return null;
+          const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+          const polaroidBuffer = await buildPolaroidCard({
+            imageBuffer,
+            caption: card.quoteText || "",
+            cardW: Math.round(slot.width),
+            cardH: Math.round(slot.height),
+            rotation: slot.rotation || 0,
+          });
+          const polaroidMeta = await sharp(polaroidBuffer).metadata();
+          const rotatedW = polaroidMeta.width || slot.width;
+          const rotatedH = polaroidMeta.height || slot.height;
+          let leftPos = clamp(Math.round(slot.x), margin, canvasWidth - rotatedW - margin);
+          let topPos = clamp(Math.round(slot.y), margin, canvasHeight - rotatedH - margin);
+          return { input: polaroidBuffer, left: leftPos, top: topPos } as sharp.OverlayOptions;
+        } catch {
+          return null;
+        }
+      })
+    );
+    composites.push(...results.filter((r): r is sharp.OverlayOptions => r !== null));
   }
 
   return composites;

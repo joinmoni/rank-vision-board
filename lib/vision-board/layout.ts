@@ -368,6 +368,7 @@ function generateHardTemplateLayout(
     { width: 0.30 + Math.random() * 0.08 },
   ];
   
+  const textSlotHeight = Math.floor(height * 0.06); // ~6% of canvas for text box
   for (let i = 0; i < 4; i++) {
     const anchor = textAnchors[i];
     const textSize = textSizes[i];
@@ -376,7 +377,7 @@ function generateHardTemplateLayout(
       x: Math.floor(width * anchor.x),
       y: Math.floor(height * anchor.y),
       width: Math.floor(width * textSize.width),
-      height: 0,
+      height: textSlotHeight,
       type: "text",
     });
   }

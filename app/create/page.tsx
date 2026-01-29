@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 
 export default function CreatePage() {
   const router = useRouter();
-  const [goals, setGoals] = useState<string[]>(["", ""]);
+  const [goals, setGoals] = useState<string[]>(["", "", "", "", ""]);
   const [name, setName] = useState<string>("");
+  const [rankTag, setRankTag] = useState<string>("");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [email, setEmail] = useState<string>("");
   const [emailTouched, setEmailTouched] = useState<boolean>(false);
@@ -23,6 +24,7 @@ export default function CreatePage() {
   const emailValid = isValidEmail(email);
   const showEmailError = emailTouched && !emailValid;
 
+  const MIN_GOALS = 5;
   const MAX_GOALS = 7;
   
   const addGoal = () => {
@@ -38,8 +40,9 @@ export default function CreatePage() {
     setGoals(newGoals);
   };
 
-  // Check if first 2 goals are filled
-  const canGenerate = goals[0]?.trim() !== "" && goals[1]?.trim() !== "";
+  // Require at least 5 goals to generate
+  const validGoalsCount = goals.filter((g) => g.trim() !== "").length;
+  const canGenerate = validGoalsCount >= MIN_GOALS;
   const canSubmit = canGenerate && nameValid && !isGenerating; // Email is optional
   const canAddGoal = goals.length < MAX_GOALS && canGenerate;
 
@@ -58,8 +61,8 @@ export default function CreatePage() {
 
     const validGoals = goals.filter((goal) => goal.trim() !== "");
     
-    if (validGoals.length === 0) {
-      setError("Please enter at least one goal");
+    if (validGoals.length < MIN_GOALS) {
+      setError(`Please enter at least ${MIN_GOALS} goals`);
       return;
     }
 
@@ -76,6 +79,7 @@ export default function CreatePage() {
           goals: validGoals, 
           email: email.trim() || undefined,
           name: name.trim() || undefined,
+          rankTag: rankTag.trim() || undefined,
           gender: gender,
           uploadToStorage: true,
         }),
@@ -127,7 +131,7 @@ export default function CreatePage() {
         <div className="lg:w-1/2 p-8 md:p-16 lg:p-20 overflow-y-auto max-h-screen custom-scroll">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-10">
-            <Link href="/">
+            <Link href="https://rankvisionboard.framer.website/" target="_blank" rel="noopener noreferrer">
               <Image
                 src="/rank-logo-black.svg"
                 alt="Rank Logo"
@@ -182,6 +186,20 @@ export default function CreatePage() {
               />
             </div>
 
+            {/* Rank Tag Input */}
+            <div>
+              <label className="block text-sm font-semibold mb-3 text-gray-900">
+                Rank tag (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="@aadebola"
+                value={rankTag}
+                onChange={(e) => setRankTag(e.target.value)}
+                className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-1 focus:ring-gray-400 placeholder-gray-400"
+              />
+            </div>
+
             {/* Email Input */}
             <div>
               <label className="block text-sm font-semibold mb-3 text-gray-900">
@@ -207,7 +225,8 @@ export default function CreatePage() {
 
             {/* Goals Section */}
             <div className="pt-6">
-              <h2 className="text-4xl font-extrabold mb-8 tracking-tight">Type in your Goals</h2>
+              <h2 className="text-4xl font-extrabold mb-2 tracking-tight">Type in your Goals</h2>
+              <p className="text-gray-600 mb-6">Minimum {MIN_GOALS} goals required (up to {MAX_GOALS}).</p>
               
               <div className="space-y-6">
                 {goals.map((goal, index) => (
