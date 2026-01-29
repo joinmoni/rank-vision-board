@@ -15,8 +15,11 @@ export default function BoardPageByJobId() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [jobStatus, setJobStatus] = useState<string>("pending");
+  const [shareCaptionCopied, setShareCaptionCopied] = useState(false);
   const collageRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const shareCaptionText = `I used the Rank vision board app to create my 2026 vision board! Check it out here: ${process.env.NEXT_PUBLIC_SITE_URL || "https://visionboard.userank.com"}`;
 
   // Poll for job status
   useEffect(() => {
@@ -150,8 +153,15 @@ export default function BoardPageByJobId() {
             await navigator.share({
               files: [file],
               title: "My 2026 Vision Board",
-              text: `I used the Rank vision board app to create my 2026 vision board! Check it out here: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://rank-vision-board.vercel.app'}`,
+              text: shareCaptionText,
+              url: process.env.NEXT_PUBLIC_SITE_URL || "https://visionboard.userank.com",
             });
+            // Many mobile apps ignore text when sharing a file—copy caption to clipboard so user can paste it
+            try {
+              await navigator.clipboard.writeText(shareCaptionText);
+              setShareCaptionCopied(true);
+              setTimeout(() => setShareCaptionCopied(false), 5000);
+            } catch (_) {}
             return;
           }
         } catch (err: any) {
@@ -230,8 +240,13 @@ export default function BoardPageByJobId() {
           {/* Right side - Circular Progress Loader (Full width on mobile, centered) */}
           <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16 min-h-screen lg:min-h-0">
             <div className="w-full max-w-lg aspect-square border border-orange-100 rounded-[60px] flex flex-col items-center justify-center p-12 text-center">
-              <div className="relative flex items-center justify-center mb-8">
-                <svg className="w-32 h-32 md:w-40 md:h-40">
+              <div className="relative flex items-center justify-center mb-8 w-32 h-32 md:w-40 md:h-40 shrink-0">
+                <svg
+                  className="w-full h-full"
+                  viewBox="0 0 160 160"
+                  preserveAspectRatio="xMidYMid meet"
+                  aria-hidden
+                >
                   <circle
                     className="text-gray-100"
                     strokeWidth="4"
@@ -259,12 +274,15 @@ export default function BoardPageByJobId() {
                     }}
                   />
                 </svg>
-                <span className="absolute text-3xl md:text-4xl font-black text-[#3E0000]">
+                <span className="absolute inset-0 flex items-center justify-center text-3xl md:text-4xl font-black text-[#3E0000] pointer-events-none">
                   {Math.round(progress)}%
                 </span>
               </div>
-              <p className="text-xl md:text-2xl font-medium text-gray-800 leading-snug max-w-xs">
+              <p className="hidden lg:block text-xl md:text-2xl font-medium text-gray-800 leading-snug max-w-xs">
                 Our design intern is cooking up your vision board. Give her a minute.
+              </p>
+              <p className="lg:hidden text-base sm:text-lg font-medium text-gray-800 leading-snug max-w-xs px-2">
+                You can navigate away from this page. We&apos;ll send your vision board to your email.
               </p>
             </div>
           </div>
@@ -320,21 +338,28 @@ export default function BoardPageByJobId() {
 
               {/* Buttons */}
               {imageUrl && (
-                <div className="flex flex-row gap-4 mb-6">
-                  <button
-                    onClick={handleShare}
-                    disabled={!imageUrl}
-                    className="flex-1 px-6 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Share Board
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    disabled={!imageUrl}
-                    className="flex-1 px-6 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Download
-                  </button>
+                <div className="mb-6">
+                  <div className="flex flex-row gap-4 mb-2">
+                    <button
+                      onClick={handleShare}
+                      disabled={!imageUrl}
+                      className="flex-1 px-6 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Share Board
+                    </button>
+                    <button
+                      onClick={handleDownload}
+                      disabled={!imageUrl}
+                      className="flex-1 px-6 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Download
+                    </button>
+                  </div>
+                  {shareCaptionCopied && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Caption copied to clipboard—paste it into your post or message if it didn&apos;t appear.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -381,21 +406,28 @@ export default function BoardPageByJobId() {
 
               {/* Buttons */}
               {imageUrl && (
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <button
-                    onClick={handleShare}
-                    disabled={!imageUrl}
-                    className="px-10 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Share Board
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    disabled={!imageUrl}
-                    className="px-10 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Download
-                  </button>
+                <div className="mb-8">
+                  <div className="flex flex-col sm:flex-row gap-4 mb-2">
+                    <button
+                      onClick={handleShare}
+                      disabled={!imageUrl}
+                      className="px-10 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Share Board
+                    </button>
+                    <button
+                      onClick={handleDownload}
+                      disabled={!imageUrl}
+                      className="px-10 py-4 bg-gray-200 text-black font-bold rounded-2xl hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Download
+                    </button>
+                  </div>
+                  {shareCaptionCopied && (
+                    <p className="text-sm text-white/80 mt-2">
+                      Caption copied to clipboard—paste it into your post or message if it didn&apos;t appear.
+                    </p>
+                  )}
                 </div>
               )}
 
